@@ -38,51 +38,43 @@ message("Logged on to WRDS ...")
 
 # --- Specify filters and variables --------------------------------------------
 
-dyn_vars <- c(
-  "gvkey", "conm", "cik", "fyear", "datadate", "indfmt", "sich",
-  "consol", "popsrc", "datafmt", "curcd", "curuscn", "fyr", 
-  "act", "ap", "aqc", "aqs", "acqsc", "at", "ceq", "che", "cogs", 
-  "csho", "dlc", "dp", "dpc", "dt", "dvpd", "exchg", "gdwl", "ib", 
-  "ibc", "intan", "invt", "lct", "lt", "ni", "capx", "oancf", 
-  "ivncf", "fincf", "oiadp", "pi", "ppent", "ppegt", "rectr", 
-  "sale", "seq", "txt", "xint", "xsga", "costat", "mkvalt", "prcc_f",
-  "recch", "invch", "apalch", "txach", "aoloch",
-  "gdwlip", "spi", "wdp", "rcp"
-)
+if (FALSE) {
+  # The code below can be used to inform yourself about tables and their
+  # contents that are available on WRDS.
+  res <- dbSendQuery(
+    wrds, "select distinct table_name
+  from information_schema.columns
+  where table_schema='audit'
+  order by table_name"
+  )
+  tables <- dbFetch(res, n=-1)
+  dbClearResult(res)
+  
+  res <- dbSendQuery(wrds, "select column_name
+                   from information_schema.columns
+                   where table_schema='audit'
+                   and table_name='feed70_europe_cblock'
+                   order by column_name")
+  cols <- dbFetch(res, n=-1)
+  dbClearResult(res)
+}
 
-dyn_var_str <- paste(dyn_vars, collapse = ", ")
-
-stat_vars <- c("gvkey", "loc", "sic", "spcindcd", "ipodate", "fic")
-stat_var_str <- paste(stat_vars, collapse = ", ")
-
-cs_filter <- "consol='C' and (indfmt='INDL' or indfmt='FS') and datafmt='STD' and popsrc='D'"
 
 
-# --- Pull Compustat data ------------------------------------------------------
+# --- Pull Audit Analytics data ------------------------------------------------
 
-message("Pulling dynamic Compustat data ... ", appendLF = FALSE)
-res <- dbSendQuery(wrds, paste(
-  "select", 
-  dyn_var_str, 
-  "from COMP.FUNDA",
-  "where", cs_filter
-))
+message("Pulling European Audit fee data ... ", appendLF = FALSE)
+res <- dbSendQuery(wrds, "select * from audit.feed70_europe_cblock")
+cblock_data <- dbFetch(res, n=-1)
+dbClearResult(res)
 
-wrds_us_dynamic <- dbFetch(res, n=-1)
+res <- dbSendQuery(wrds, "select * from audit.feed71_eu_audit_fee")
+afee_data <- dbFetch(res, n=-1)
 dbClearResult(res)
 message("done!")
 
-message("Pulling static Compustat data ... ", appendLF = FALSE)
-res2<-dbSendQuery(wrds, paste(
-  "select ", stat_var_str, "from COMP.COMPANY"
-))
-
-wrds_us_static <- dbFetch(res2,n=-1)
-dbClearResult(res2)
-message("done!")
-
-wrds_us <- merge(wrds_us_static, wrds_us_dynamic, by="gvkey")
-save_wrds_data(wrds_us, "data/pulled/cstat_us_sample.rds")
+saveRDS(cblock_data, "data/pulled/audit_analytics_cblock_data.rds")
+saveRDS(afee_data, "data/pulled/audit_analytics_afee_data.rds")
 
 dbDisconnect(wrds)
 message("Disconnected from WRDS")

@@ -1,29 +1,31 @@
-## The TRR 266 Template for Reproducible Empirical Accounting Research 
+## Code repository for the empirical part of the Master's Thesis Seminar in Accounting - Winter Term 2021/2022 
 
-This repository provides an infrastructure for open science oriented empirical projects. It is targeted to the empirical accounting research crowd. It features a toy project exploring discretionary accruals of U.S. public firms and requires access to U.S. Compustat data via WRDS.
-
-But even if you do not care about discretionary accruals (who wouldn't?) or do not have WRDS access, its code base should give you a feel on how the template is supposed to be used and how to structure a reproducible empirical project.
-
-Currently, this is all R based but it is not meant to stay that way. You can help by contributing Python and/or Stata code that mimics the R analysis steps via pull requests.
+This repository contains the code that I used to create the dataset that I provided to you on Moodle for your empirical assignment. It also contains information on the assignment itself (see next section). I will extend it with my "solution" after the submission deadline.
 
 
-### Where do I start?
+### The empirical assignment - Part 1 (due: Dec 12, 6pm)
 
-For those of you new to R, we have "produced" a [series of short videos](https://www.youtube.com/playlist?list=PL-9XqvJlFJ-5NDUXubrbvF3aEQPeoAki3) that guide you through the process of setting up your computing environment and using this repository. Also, there is a [blog post](https://joachim-gassen.github.io/2021/03/get-a-treat/) that details these steps in a written form.
+In our two-stage empirical project we will study audit fees of European firms. For that I provide you with a dataset based on data from Audit Analytics that I obtained using WRDS. The data is available both in Excel and CSV Format on Moodle. The code that I used to download the data is available in the `code` directory of this repository.
 
-If you are new to scientific computing, we suggest that you also pick up a reference from the list below and browse through it. The [Gentzkow and Shapiro (2014) paper](https://web.stanford.edu/~gentzkow/research/CodeAndData.pdf) is a particularly easy and also useful read. 
+For the first step of the assignment (due Dec 12) I want you to provide descriptive evidence on factors that are associated with audit fees, non-audit fees and total fees. While your analysis should be exploratory in nature and thus should not be targeting causal effects, try to uncover meaningful and economically interesting associations. Your analysis can use additional data besides the data provided to you on Moodle but you do not have to. You can use tables and/or figures to communicate your findings. Please annotate both with notes so that they are self-explanatory. In addition, please provide a short abstract that summarizes your key finding. Along with a PDF file containing these materials, please also submit the code that you used to create your findings.
 
-Then browse around the repository and familiarize yourself with its folders. You will quickly see that there are three folders that have files in them:
 
-- `code`: This directory holds program scripts that are being called to download data from WRDS, prepare the data, run the analysis and create the output files (a paper and a presentation, both PDF files).
+### About the repo and its structure
+
+Browse around the repository and familiarize yourself with its folders. There are three folders that have files in them:
+
+- `code`: This directory holds program scripts that are being called to download data from WRDS, prepare the data, and run the analysis. The last part will be added after your assignments are due, of course ;-).
 
 - `data`: A directory where data is stored. You will see that it again contains sub-directories and a README file that explains their purpose. You will also see that in the `external` sub-directory there are two data files. Again, the README file explains their content.
 
-- `doc`: Here you will find two RMarkdown files containing text and program instructions that will become our paper and presentation, by rendering them through the R markdown process and LaTeX.
-
-- `info`: This is a folder that can store additional documentation. In our case you will find a RMarkdown file that introduces our TRR 266-themed ggplot theme.
-
 You also see an `output` directory but it is empty. Why? Because you will create the output locally on your computer, if you want.
+
+
+### I have no idea about scientific computing - Where do I start?
+
+If you are new to scientific computing, we suggest that you also pick up a reference from the list below and browse through it. The [Gentzkow and Shapiro (2014) paper](https://web.stanford.edu/~gentzkow/research/CodeAndData.pdf) is a particularly easy and also useful read. For those that are new to R, I suggest that you take a look into the [awesome text book 'R for Data Science'](https://r4ds.had.co.nz).
+
+If you want to set up your very own R computing environment, we have "produced" a [series of short videos](https://www.youtube.com/playlist?list=PL-9XqvJlFJ-5NDUXubrbvF3aEQPeoAki3) that guide you through the process of setting up your computing environment and using this repository. Also, there is a [blog post](https://joachim-gassen.github.io/2021/03/get-a-treat/) that details these steps in a written form.
 
 
 ### How do I create the output?
@@ -34,7 +36,7 @@ Assuming that you have WRDS access, RStudio and make/Rtools installed, this shou
 2. Before building everything you most likely need to install additional packages. This repository follows the established principle not to install any packages automatically. This is your computing environment. You decide what you want to install. See the code below for installing the packages.
 3. Copy the file _config.csv to config.csv in the project main directory. Edit it by adding your WRDS credentials. 
 4. Run 'make all' either via the console or by identifying the 'Build All' button in the 'Build' tab (normally in the upper right quadrant of the RStudio screen). 
-5. Eventually, you will be greeted with the two files in the output directory: "paper.pdf" and "presentation.pdf". Congratulations! You have successfully used an open science resource and reproduced our "analysis". Now modify it and make it your own project!
+5. Eventually, you will be greeted with the data files in the output directory. Congratulations! 
 
 If you do not see 'Build' tab this is most likely because you do not have 'make' installed on your system. 
   - For Windows: Install Rtools: https://cran.r-project.org/bin/windows/Rtools/
@@ -47,15 +49,10 @@ install_package_if_missing <- function(pkg) {
   if (! pkg %in% installed.packages()[, "Package"]) install.packages(pkg)
 }
 install_package_if_missing("tidyverse")
-install_package_if_missing("modelr")
-install_package_if_missing("broom")
 install_package_if_missing("lubridate")
 install_package_if_missing("ExPanDaR")
 install_package_if_missing("RPostgres")
 install_package_if_missing("DBI")
-install_package_if_missing("knitr")
-install_package_if_missing("kableExtra")
-install_package_if_missing("rmarkdown")
 
 # In addition, if you have no working LaTeX environment, consider
 # installing the neat tinytex LateX distribution. It is lightweight and
@@ -68,37 +65,10 @@ tinytex::install_tinytex()
 # That's all!
 ```
 
-### OK. That was fun. Bot how should I use the repo now?
 
-The basic idea is to clone the repository whenever you start a new project. If you are using GitHub, the simplest way to do this is to click on "Use this Template" above the file list. Then delete everything that you don't like and/or need. Over time, as you develop your own preferences, you can fork this repository and adjust it so that it becomes your very own template targeted to your very own preferences.
+### Disclaimer
 
-
-### For TRR 266 Members: What else is in there for you?
-
-This repository contains three files that TRR members that use R might find particularly useful. The file `code/R/theme_trr.R` features a ggplot theme that makes it easy to generate visuals that comply to the TRR 266 style guide. The RMarkdown file in `info` takes you through the process. With the `doc/beamer_theme_trr266.sty` you can beef up your RMarkdown based beamer presentations to our fancy TRR design. Finally, the file `code/R/pull_wrds_data.R` might be useful if you want to learn how to download WRDS data directly from R.
-
-
-### Why do you do abc in a certain way? I like to do things differently!
-
-Scientific workflows are a matter of preference and taste. What we present here is based on our experiences on what works well but this by no means implies that there are no other and better ways to do things. So, feel free to disagree and to build your own template. Or, even better: Convince us about your approach by submitting a pull request!
-
-
-### But there are other templates. Why yet another one?
-
-Of course there are and they a great. The reason why we decided to whip up our own is that we wanted a template that also includes some of the default style elements that we use in our collaborative research center [TRR 266 Accounting for Transparency](https://accounting-for-transparency.de). And we wanted to have a template that is centered on workflows that are typical in the accounting and finance domain. Here you go.
-
-
-### Licensing
-
-This repository is licensed to you under the MIT license, essentially meaning that you can do whatever you want with it as long as you give credit to us when you use substantial portions of it. What 'substantial' means is not trivial for a template. Here is our understanding. If you 'only' use the workflow, the structure and let's say parts of the Makefile and/or the README sections that describe these aspects, we do not consider this as 'substantial' and you do not need to credit us. If, however, you decide to reuse a significant part of the example code, for example the code pulling data from WRDS, we think that giving credit would be appropriate.
-
-In any case, we would love to see you spreading the word by adding a statement like 
-
-```
 This repository was built based on the ['treat' template for reproducible research](https://github.com/trr266/treat).
-```
-
-to your README file. But this is not a legal requirement but a favor that we ask 😉.
 
 
 ### References
