@@ -25,7 +25,7 @@ You also see an `output` directory but it is empty. Why? Because you will create
 
 If you are new to scientific computing, we suggest that you also pick up a reference from the list below and browse through it. The [Gentzkow and Shapiro (2014) paper](https://web.stanford.edu/~gentzkow/research/CodeAndData.pdf) is a particularly easy and also useful read. For those that are new to R, I suggest that you take a look into the [awesome text book 'R for Data Science'](https://r4ds.had.co.nz).
 
-If you want to set up your very own R computing environment, we have "produced" a [series of short videos](https://www.youtube.com/playlist?list=PL-9XqvJlFJ-5NDUXubrbvF3aEQPeoAki3) that guide you through the process of setting up your computing environment and using this repository. Also, there is a [blog post](https://joachim-gassen.github.io/2021/03/get-a-treat/) that details these steps in a written form.
+If you want to set up your very own R computing environment, we have "produced" a [series of short videos](https://www.youtube.com/playlist?list=PL-9XqvJlFJ-5NDUXubrbvF3aEQPeoAki3) that guide you through the process of setting up your computing environment and using a [repository similar to this one](https://github.com/trr266/treat). Also, there is a [blog post](https://joachim-gassen.github.io/2021/03/get-a-treat/) that details these steps in a written form.
 
 
 ### How do I create the output?
@@ -50,6 +50,7 @@ install_package_if_missing <- function(pkg) {
 }
 install_package_if_missing("tidyverse")
 install_package_if_missing("lubridate")
+install_package_if_missing("writexl")
 install_package_if_missing("ExPanDaR")
 install_package_if_missing("RPostgres")
 install_package_if_missing("DBI")

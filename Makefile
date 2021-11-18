@@ -1,19 +1,16 @@
 # If you are new to Makefiles: https://makefiletutorial.com
 
-PAPER := output/paper.pdf
+DATA := output/afees_eu.xlsx output/afees_eu.csv
 
-PRESENTATION := output/presentation.pdf
-
-TARGETS :=  $(PAPER) $(PRESENTATION)
+TARGETS :=  $(DATA)
 
 EXTERNAL_DATA := data/external/fama_french_12_industries.csv \
 	data/external/fama_french_48_industries.csv
 
-WRDS_DATA := data/pulled/cstat_us_sample.rds
+WRDS_DATA := data/pulled/audit_analytics_afee_data.rds \
+	data/pulled/audit_analytics_cblock_data.rds
 
-GENERATED_DATA := data/generated/acc_sample.rds
-
-RESULTS := output/results.rda
+GENERATED_DATA := data/generated/afees_eu.rds
 
 RSCRIPT := Rscript --encoding=UTF-8
 
@@ -23,7 +20,6 @@ all: $(TARGETS)
 
 clean:
 	rm -f $(TARGETS)
-	rm -f $(RESULTS)
 	rm -f $(GENERATED_DATA)
 	
 very-clean: clean
@@ -44,6 +40,8 @@ $(GENERATED_DATA): $(WRDS_DATA) $(EXTERNAL_DATA) code/R/prepare_data.R
 
 $(RESULTS):	$(GENERATED_DATA) code/R/do_analysis.R
 	$(RSCRIPT) code/R/do_analysis.R
+
+$(DATA): $(GENERATED_DATA)
 
 $(PAPER): doc/paper.Rmd doc/references.bib $(RESULTS) 
 	$(RSCRIPT) -e 'library(rmarkdown); render("doc/paper.Rmd")'

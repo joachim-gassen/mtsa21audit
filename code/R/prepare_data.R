@@ -3,10 +3,14 @@
 #
 # See LICENSE file for details 
 # ------------------------------------------------------------------------------
-library(dplyr)
-library(lubridate)
-library(readr)
-library(writexl)
+suppressMessages({
+  library(dplyr)
+  library(lubridate)
+  library(readr)
+  library(writexl)
+})
+
+message("Preparing assignment data... ", appendLF = FALSE)
 
 cblock <- readRDS("data/pulled/audit_analytics_cblock_data.rds")
 afee <- readRDS("data/pulled/audit_analytics_afee_data.rds")
@@ -51,3 +55,5 @@ if (nrow(dups) > 0) stop(paste(
 saveRDS(afees_eu, "data/generated/afees_eu.rds")
 write_csv(afees_eu, "output/afees_eu.csv")
 write_xlsx(afees_eu, "output/afees_eu.xlsx")
+
+message("done!")
