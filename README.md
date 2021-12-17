@@ -10,6 +10,25 @@ In our two-stage empirical project we will study audit fees of European firms. F
 For the first step of the assignment (due Dec 12) I want you to provide descriptive evidence on factors that are associated with audit fees. While your analysis should be exploratory in nature and thus should not be targeting causal effects, try to uncover meaningful and economically interesting associations. Your analysis can use additional data besides the data provided to you on Moodle but does not have to. You can use tables and/or figures to communicate your findings. Please annotate both with notes so that they are self-explanatory. In addition, please provide a short abstract that summarizes your key findings. Along with a PDF file containing these materials, please also submit the code that you used to create your findings.
 
 
+### The empirical assignment - Part 2 (due: Jan 10, 6pm)
+
+Building on the data of the last assignment, we will now assess the impact of regulatory reforms on the audit fee structure. You can choose between the implementation of two different European regulations.
+
+1. The 2014 EU Audit Directive that fundamentally changed the Audit engagement rules for public interest entities listed on an EU-regulated market. See  [here](https://www.accountancyeurope.eu/publications/1606-new-audit-rules-state-play/) for more details.
+
+2. The EU Directive on Non-Financial Reporting that introduced a mandate for public interest entities with more than 500 employees to produce non-financial disclosures. See [here](https://ec.europa.eu/info/business-economy-euro/company-reporting-and-auditing/company-reporting/corporate-sustainability-reporting_en) for more details.
+
+Both reforms have already been discussed so it might be helpful to screen the prior literature. Assessing the effect of the regulation will require you to apply a [Difference in Differences Analysis](https://mixtape.scunning.com/difference-in-differences.html), including the following steps:
+
+- Identify an outcome variable
+- Identify when the regulation became effective (this can vary across clients)
+- Identify a treatment group of clients that were effected by the regulation at some point.
+- Identify a control group of clients that were not affected by the regulation at any time.
+
+A hint: The analysis of the Non-Financial Reporting Directive most likely requires you to collect additional data while you can prepare the analysis for the auditing directive with the original data set of the first assignment.
+
+As always: Feel free to help each other as long as you are handing in independent solutions. I expect a ZIP file containing the code and a PDF. The PDF has to contain a well-written abstract and self-standing tables and/or figures that could be directly transferred into a "submitable" Master's thesis. Please also prepare a reference list containing all referenced literature.
+
 ### About the repo and its structure
 
 Browse around the repository and familiarize yourself with its folders. There are two folders that have files in them:
