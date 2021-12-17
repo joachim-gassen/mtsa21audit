@@ -1,6 +1,6 @@
 ---
 title: |
-  | The Europen Public-Firm Audit Market: 
+  | The European Public-Firm Audit Market: 
   | Some exploratory insights  \vspace{1cm}
 
 author: |
@@ -13,7 +13,7 @@ date: |
   | `r loc <- Sys.getlocale(category = "LC_TIME"); Sys.setlocale("LC_TIME", "C"); fdate <- format(Sys.time(), '%B %e, %Y'); Sys.setlocale("LC_TIME", loc); fdate` \vspace{1cm}
   
 abstract: |
-  | Building on sample of European publicly-listed clients and their audit fees I explore the market share of Big 4 auditing firm across time, countries and industries. I further assess the audit fee differential between Big 4 and non Big 4 firms. 
+  | Building on a sample of European publicly-listed clients and their audit fees I explore the market share of Big 4 auditing firm across time, countries and industries. I further assess the audit fee differential between Big 4 and non Big 4 firms. 
   | \vspace{6cm}
 
 output:
