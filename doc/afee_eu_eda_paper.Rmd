@@ -27,7 +27,6 @@ ident: yes
 always_allow_html: yes
 
 header-includes:
-  - \usepackage[nomarkers,nolists]{endfloat}    
   - \usepackage{setspace}\doublespacing
   - \setlength{\parindent}{4em}
   - \setlength{\parskip}{0em}
@@ -119,6 +118,79 @@ afees_eu_clean <- afees_eu_desc %>%
   ) %>% group_by(hq_iso2c) %>% filter(n() >= 1000) %>% ungroup()
 
 ```
+
+```{r Desc, echo = FALSE, results = "asis"}
+
+var_labels <- c(
+  "Audit fees", "Assets", "Sales", "Market Capitalization", "Big 4"
+)
+desc_rnames <- paste0("\\textit{", var_labels, "}")
+
+smp <- afees_eu_clean %>%
+  mutate(
+    entity_map_fkey = as.factor(entity_map_fkey),
+    audit_fees = (exp(laudit_fees) - 1)/1e6,
+    assets = exp(lassets)/1e6,
+    revenues = exp(lrevenues)/1e6,
+    market_cap = exp(lmarket_cap)/1e6,
+  ) %>%
+  select(
+    hq_iso2c, entity_map_fkey, entity_name, year, ff12_ind, 
+    audit_fees, assets, revenues, market_cap, big4,
+    laudit_fees, lassets, lrevenues, lmarket_cap
+  )
+
+smp_desc <- smp %>% select(-starts_with("l"))  
+t <- prepare_descriptive_table(smp_desc %>% select(-year))
+rownames(t$df) <- desc_rnames
+names(t$df)[c(5,7)] <- c("25 \\%", "75 \\%")
+kable(t$df, digits = c(0, 3, 3, 3, 3, 3, 3, 3), format = "latex",
+      caption = "\\label{tab:descriptives}Descriptive Statistics",
+      format.args = list(decimal.mark = ".", big.mark = ",", 
+                         scientific=FALSE),
+      booktabs = TRUE, escape = FALSE, linesep = "") -> kab_latex
+
+lat_tab <- unlist(strsplit(kab_latex, "\n"))
+lat_tab[6] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+lat_tab[8] <- "\\hline\\\\[-1.8ex]"
+lat_tab[length(lat_tab) - 2] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+
+latex_tab <- c(
+  "\\begin{table}[!htbp]",  
+  lat_tab[3],
+  "\\begin{adjustbox}{width=\\textwidth}",
+  "\\begin{threeparttable}",
+  lat_tab[5:(length(lat_tab) - 1)],
+  "\\begin{tablenotes}[flushleft]",
+  "\\setlength{\\labelsep}{0pt}",
+  "\\footnotetext",
+  sprintf(
+    paste(
+      "\\item Note: The data is obtained from the Audit Analytics as provided",
+      "by WRDS. The sample covers the period %d to %d and %s unique clients",
+      "form %d countries. Countries with less tham 1,000 observations are excluded.",
+      "For audits involving multiple audit firms, audit fees are aggregated",
+      "at the client-fiscal year level so that Audit fees represents the audit",
+      "fees that the client incurred during a fiscal year. Assets and market",
+      "capitalization are measured at the fiscal year end. Revenues reresent",
+      "net sales during the fiscal year.", 
+      "All values are measured in Mio. Euro. Big 4 is a binary variable",
+      "taking the value of one whenever a Big 4 auditing firm (KPMG, PWC,",
+      "EY or Deloitte) is involved in the audit."
+    ),
+    min(smp_desc$year), max(smp_desc$year), 
+    format(length(unique(smp_desc$entity_map_fkey)), big.mark = ","),
+    length(unique(smp_desc$hq_iso2c))
+  ),
+  "\\end{tablenotes}",
+  "\\end{threeparttable}",
+  "\\end{adjustbox}",
+  "\\end{table}"
+)
+cat(paste(latex_tab, collapse = "\n"))  
+```
+
+
 
 ```{r YearBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig:YearBar}Number of Clients by Year"}
 
@@ -238,76 +310,6 @@ ggplot(df, aes(x = assets, y = audit_fees, color = big4)) +
 ```
 
 
-```{r Desc, echo = FALSE, results = "asis"}
-
-var_labels <- c(
-  "Audit fees", "Assets", "Sales", "Market Capitalization", "Big 4"
-)
-desc_rnames <- paste0("\\textit{", var_labels, "}")
-
-df <- afees_eu_clean %>%
-  mutate(
-    entity_map_fkey = as.factor(entity_map_fkey),
-    audit_fees = (exp(laudit_fees) - 1)/1e6,
-    assets = exp(lassets)/1e6,
-    revenues = exp(lrevenues)/1e6,
-    market_cap = exp(lmarket_cap)/1e6,
-  ) %>%
-  select(
-    hq_iso2c, entity_map_fkey, entity_name, year, ff12_ind, 
-    audit_fees, assets, revenues, market_cap, big4,
-    laudit_fees, lassets, lrevenues, lmarket_cap
-  )
-
-desc_df <- df %>% select(-starts_with("l"))  
-t <- prepare_descriptive_table(desc_df %>% select(-year))
-rownames(t$df) <- desc_rnames
-names(t$df)[c(5,7)] <- c("25 \\%", "75 \\%")
-kable(t$df, digits = c(0, 3, 3, 3, 3, 3, 3, 3), format = "latex",
-      caption = "\\label{tab:descriptives}Descriptive Statistics",
-      format.args = list(decimal.mark = ".", big.mark = ",", 
-                         scientific=FALSE),
-      booktabs = TRUE, escape = FALSE, linesep = "") -> kab_latex
-
-lat_tab <- unlist(strsplit(kab_latex, "\n"))
-lat_tab[6] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
-lat_tab[8] <- "\\hline\\\\[-1.8ex]"
-lat_tab[length(lat_tab) - 2] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
-
-latex_tab <- c(
-  "\\begin{table}[!htbp]",  
-  lat_tab[3],
-  "\\begin{adjustbox}{width=\\textwidth}",
-  "\\begin{threeparttable}",
-  lat_tab[5:(length(lat_tab) - 1)],
-  "\\begin{tablenotes}[flushleft]",
-  "\\setlength{\\labelsep}{0pt}",
-  "\\footnotetext",
-  sprintf(
-    paste(
-      "\\item Note: The data is obtained from the Audit Analytics as provided",
-      "by WRDS. The sample covers the period %d to %d and %s unique clients",
-      "form %d countries. Countries with less tham 1,000 observations are excluded.",
-      "For audits involving multiple audit firms, audit fees are aggregated",
-      "at the client-fiscal year level so that Audit fees represents the audit",
-      "fees that the client incurred during a fiscal year. Assets and market",
-      "capitalization are measured at the fiscal year end. Revenues reresent",
-      "net sales during the fiscal year.", 
-      "All values are measured in Mio. Euro. Big 4 is a binary variable",
-      "taking the value of one whenever a Big 4 auditing firm (KPMG, PWC,",
-      "EY or Deloitte) is involved in the audit."
-    ),
-    min(desc_df$year), max(desc_df$year), 
-    format(length(unique(desc_df$entity_map_fkey)), big.mark = ","),
-    length(unique(desc_df$hq_iso2c))
-  ),
-  "\\end{tablenotes}",
-  "\\end{threeparttable}",
-  "\\end{adjustbox}",
-  "\\end{table}"
-)
-cat(paste(latex_tab, collapse = "\n"))  
-```
 
 
 ``` {r CorrTable, results="asis"}
@@ -317,7 +319,7 @@ var_labels <- c(
 )
 var_names <- c("laudit_fees", "lassets", "lrevenues", "lmarket_cap", "big4")
 tab <- prepare_correlation_table(
-  df %>% select(all_of(var_names)), format = "latex", booktabs = T
+  smp %>% select(all_of(var_names)), format = "latex", booktabs = T
 )
 lat_tab <- unlist(strsplit(tab$kable_ret, "\n"))
 lat_tab[7:(6 + length(var_names))] <- str_replace(
@@ -332,7 +334,7 @@ lat_tab[(10 + length(var_names))] <- sprintf(
     "\\item This table reports Pearson correlations above and Spearman", 
     "correlations below the diagonal. Number of observations: %s.", 
     "Correlations with significance levels below 5\\%% appear in bold print."
-  ), format(nrow(df), big.mark = ",")
+  ), format(nrow(smp), big.mark = ",")
 )
 latex_tab <- c(
   "\\begin{table}[!htbp]",  
@@ -346,7 +348,7 @@ cat(paste(latex_tab, collapse = "\n"))
 
 ``` {r RegTable, results="asis"}
 tab <- prepare_regression_table(
-  df, rep("laudit_fees", 4), 
+  smp, rep("laudit_fees", 4), 
   idvs = list(
     c("big4", "lassets"),  
     c("big4", "lassets", "lrevenues", "lmarket_cap"),  
