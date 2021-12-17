@@ -3,11 +3,11 @@
 This repository contains the code that I used to create the dataset that I provided to you on Moodle for your empirical assignment. It also contains information on the assignment itself (see next section). I will extend it with my "solution" after the submission deadline.
 
 
-### The empirical assignment - Part 1 (due: Dec 12, 6pm)
+### The empirical assignment - Part 1 (due: Dec 13, 6pm)
 
 In our two-stage empirical project we will study audit fees of European firms. For that I provide you with a dataset based on data from Audit Analytics that I obtained using WRDS. The data is available both in Excel and CSV Format on Moodle. The code that I used to download the data is available in the `code` directory of this repository.
 
-For the first step of the assignment (due Dec 12) I want you to provide descriptive evidence on factors that are associated with audit fees. While your analysis should be exploratory in nature and thus should not be targeting causal effects, try to uncover meaningful and economically interesting associations. Your analysis can use additional data besides the data provided to you on Moodle but does not have to. You can use tables and/or figures to communicate your findings. Please annotate both with notes so that they are self-explanatory. In addition, please provide a short abstract that summarizes your key findings. Along with a PDF file containing these materials, please also submit the code that you used to create your findings.
+For the first step of the assignment (due Dec 13) I want you to provide descriptive evidence on factors that are associated with audit fees. While your analysis should be exploratory in nature and thus should not be targeting causal effects, try to uncover meaningful and economically interesting associations. Your analysis can use additional data besides the data provided to you on Moodle but does not have to. You can use tables and/or figures to communicate your findings. Please annotate both with notes so that they are self-explanatory. In addition, please provide a short abstract that summarizes your key findings. Along with a PDF file containing these materials, please also submit the code that you used to create your findings.
 
 
 ### The empirical assignment - Part 2 (due: Jan 10, 6pm)
