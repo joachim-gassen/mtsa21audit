@@ -13,7 +13,7 @@ date: |
   | `r loc <- Sys.getlocale(category = "LC_TIME"); Sys.setlocale("LC_TIME", "C"); fdate <- format(Sys.time(), '%B %e, %Y'); Sys.setlocale("LC_TIME", loc); fdate` \vspace{1cm}
   
 abstract: |
-  | Building on sample of European publicly-listed clients and their audit fees I explore the market share of Big 4 auditing firm across time, countries and idustries. I further assess the audit fee differential between Big 4 and non Big 4 firms. 
+  | Building on sample of European publicly-listed clients and their audit fees I explore the market share of Big 4 auditing firm across time, countries and industries. I further assess the audit fee differential between Big 4 and non Big 4 firms. 
   | \vspace{6cm}
 
 output:
@@ -50,7 +50,10 @@ library(kableExtra)
 opts_chunk$set(fig.pos = 'p') # Places figures on their own pages
 opts_chunk$set(out.width = '100%', dpi=300)
 opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, cache = TRUE)
-options(ggplot2.discrete.color = c("blue", "#af01ef"), ggplot2.discrete.fill = c("blue", "#af01ef"))
+options(
+  ggplot2.discrete.colour = RColorBrewer::brewer.pal(8, "Set1"), 
+  ggplot2.discrete.fill = RColorBrewer::brewer.pal(8, "Set1")
+)
 ```
 
 ```{r prepData, include=FALSE}
@@ -162,8 +165,8 @@ ggplot(afees_eu_clean, aes(x = ff12_ind, fill = big4)) +
 ```
 
 
-```{r ClientMSAbsolute, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Big4MSFeesOverTime}Absolute Client Market Shares Over Time"}
 
+```{r ClientMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Big4MSFeesOverTime}Realtive Client Market Share Over Time"}
 mshares_year <- afees_eu_clean %>%
   group_by(year, big4) %>%
   summarise(
@@ -174,16 +177,6 @@ mshares_year <- afees_eu_clean %>%
     sum_fees_p = sum_fees / sum(sum_fees),
     clients_p = clients / sum(clients),
   )
-
-ggplot(mshares_year, aes(x = year, y = clients, fill = big4)) +
-  geom_area() + 
-  labs(x = "Fiscal Year", y = "Number of Clients", fill = "Auditor") +
-  scale_fill_discrete(labels = c("Non Big 4", "Big 4")) +
-  theme_minimal() + theme(legend.position = "bottom")
-```
-
-
-```{r ClientMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Big4MSFeesOverTime}Realtive Client Market Share Over Time"}
 
 ggplot(mshares_year, aes(x = year, y = clients_p, fill = big4)) +
   geom_area() + 
@@ -199,9 +192,8 @@ ggplot(mshares_year, aes(x = year, y = sum_fees, fill = big4)) +
   geom_area() + 
   labs(x = "Fiscal Year", y = "Total Audit Fees [Mio. Euro]", fill = "Auditor") +
   scale_fill_discrete(labels =  c("Non Big 4", "Big 4")) +
-  scale_y_continuous(labels = scales::label_percent()) +
+  scale_y_continuous(labels = scales::label_comma()) +
   theme_minimal() + theme(legend.position = "bottom")
-  
 ```
 
 ```{r FeeMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Big4MSFeesOverTime}Realtive Fee Market Share of Big 4 Firms Over Time"}
@@ -383,7 +375,7 @@ for (i in seq(15, 24, by = 3)) {
 
 tab[32:33] <- str_replace_all(tab[32:33], fixed("entity\\_map\\_fkey"), "Client")
 tab[32:33] <- str_replace_all(tab[32:33], fixed("year"), "Year")
-tab <- tab[c(8, 11, 12:36, 38)]
+tab <- tab[c(9, 10, 13:36, 38)]
 
 latex_tab <- c(
   "\\begin{table}[!htbp]",  
