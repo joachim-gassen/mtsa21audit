@@ -98,7 +98,7 @@ Your choice. Here is what you have to do:
 # Run code/R/pull_wrds_data.R
 Rscript --encoding=UTF-8 code/R/pull_wrds_data.R
 # Run code/R/prepare_data.R
-Rscript --encoding=UTF-8 code/R/pprepare_data.R
+Rscript --encoding=UTF-8 code/R/prepare_data.R
 # Run code/R/clean_data.R
 Rscript --encoding=UTF-8 code/R/clean_data.R
 # Knit the pdf
