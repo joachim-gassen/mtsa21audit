@@ -1,6 +1,6 @@
 ## Code repository for the Master's Thesis Seminar in Accounting - Winter Term 2021/2022 
 
-This repository contains the code that I used to create the dataset that I provided to you on Moodle for your empirical assignment. It also contains information on the assignment itself (see next section). I will extend it with my "solution" after the submission deadline.
+This repository contains the code that I used to create the dataset that I provided to you on Moodle for your empirical assignment. It also contains information on the assignments itself and my solution of the first step of the assignment. I will extend it with my "solution" for the second step after the submission deadline.
 
 
 ### The empirical assignment - Part 1 (due: Dec 13, 6pm)
@@ -9,14 +9,16 @@ In our two-stage empirical project we will study audit fees of European firms. F
 
 For the first step of the assignment (due Dec 13) I want you to provide descriptive evidence on factors that are associated with audit fees. While your analysis should be exploratory in nature and thus should not be targeting causal effects, try to uncover meaningful and economically interesting associations. Your analysis can use additional data besides the data provided to you on Moodle but does not have to. You can use tables and/or figures to communicate your findings. Please annotate both with notes so that they are self-explanatory. In addition, please provide a short abstract that summarizes your key findings. Along with a PDF file containing these materials, please also submit the code that you used to create your findings.
 
+I now pushed my solution to the first part of the assignment to the repo. The code `core/R/clean_data.R` prepares a clean data set based on the EU audit fee data and also shows you how to use [ExPanDaR](https://joachim-gassen.github.io/ExPanDaR) to explore this data set interactively. The actual exploratory data analysis is prepared by `doc/afees_eu_eda.Rmd`. The resulting PDF is [here](afees_eu_eda.pdf). See below on how to reproduce my analysis.
+
 
 ### The empirical assignment - Part 2 (due: Jan 10, 6pm)
 
 Building on the data of the last assignment, we will now assess the impact of regulatory reforms on the audit fee structure. You can choose between the implementation of two different European regulations.
 
-1. The 2014 EU Audit Directive that fundamentally changed the Audit engagement rules for public interest entities listed on an EU-regulated market. See  [here](https://www.accountancyeurope.eu/publications/1606-new-audit-rules-state-play/) for more details.
+1. The 2014 EU Audit Directive that fundamentally changed the Audit engagement rules for public interest entities listed in an EU-regulated market. See  [here](https://www.accountancyeurope.eu/publications/1606-new-audit-rules-state-play/) for more details.
 
-2. The EU Directive on Non-Financial Reporting that introduced a mandate for public interest entities with more than 500 employees to produce non-financial disclosures. See [here](https://ec.europa.eu/info/business-economy-euro/company-reporting-and-auditing/company-reporting/corporate-sustainability-reporting_en) for more details.
+2. The EU Directive on Non-Financial Reporting that introduced a mandate for public interest entities with more than 500 employees to provide non-financial disclosures. See [here](https://ec.europa.eu/info/business-economy-euro/company-reporting-and-auditing/company-reporting/corporate-sustainability-reporting_en) for more details.
 
 Both reforms have already been discussed so it might be helpful to screen the prior literature. Assessing the effect of the regulation will require you to apply a [Difference in Differences Analysis](https://mixtape.scunning.com/difference-in-differences.html), including the following steps:
 
@@ -28,6 +30,7 @@ Both reforms have already been discussed so it might be helpful to screen the pr
 A hint: The analysis of the Non-Financial Reporting Directive most likely requires you to collect additional data while you can prepare the analysis for the auditing directive with the original data set of the first assignment.
 
 As always: Feel free to help each other as long as you are handing in independent solutions. I expect a ZIP file containing the code and a PDF. The PDF has to contain a well-written abstract and self-standing tables and/or figures that could be directly transferred into a "submitable" Master's thesis. Please also prepare a reference list containing all referenced literature.
+
 
 ### About the repo and its structure
 
@@ -55,7 +58,7 @@ Assuming that you have WRDS access, RStudio and make/Rtools installed, this shou
 2. Before building everything you most likely need to install additional packages. This repository follows the established principle not to install any packages automatically. This is your computing environment. You decide what you want to install. See the code below for installing the packages.
 3. Copy the file _config.csv to config.csv in the project main directory. Edit it by adding your WRDS credentials. 
 4. Run 'make all' either via the console or by identifying the 'Build All' button in the 'Build' tab (normally in the upper right quadrant of the RStudio screen). 
-5. Eventually, you will be greeted with the data files in the output directory. Congratulations! 
+5. Eventually, you will be greeted with the raw data files and a PDF containing an exploratory data analysis in the output directory. Congratulations! 
 
 If you do not see 'Build' tab this is most likely because you do not have 'make' installed on your system. 
   - For Windows: Install Rtools: https://cran.r-project.org/bin/windows/Rtools/
@@ -83,6 +86,23 @@ install_package_if_missing('tinytex')
 tinytex::install_tinytex()
 
 # That's all!
+```
+
+### I do now want to install 'make'. How do I reproduce the analysis manually?
+
+Your choice. Here is what you have to do:
+
+```
+# Install packages - See above
+# Copy _config.csv to config.csv and edit it. See above
+# Run code/R/pull_wrds_data.R
+Rscript --encoding=UTF-8 code/R/pull_wrds_data.R
+# Run code/R/prepare_data.R
+Rscript --encoding=UTF-8 code/R/pprepare_data.R
+# Run code/R/clean_data.R
+Rscript --encoding=UTF-8 code/R/clean_data.R
+# Knit the pdf
+Rscript --encoding=UTF-8 -e 'library(rmarkdown); render("doc/afees_eu_eda.Rmd", quiet = TRUE)'
 ```
 
 

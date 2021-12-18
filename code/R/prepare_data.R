@@ -1,5 +1,5 @@
 # --- Header -------------------------------------------------------------------
-# Cleans European audit fee data 
+# Prepares a raw sample of European audit fee data 
 #
 # See LICENSE file for details 
 # ------------------------------------------------------------------------------

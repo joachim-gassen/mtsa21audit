@@ -1,16 +1,15 @@
 # If you are new to Makefiles: https://makefiletutorial.com
 
-DATA := output/afees_eu.xlsx output/afees_eu.csv
+RAW_DATA := output/afees_eu.xlsx output/afees_eu.csv 
+DOCS := output/afees_eu_eda.pdf
 
-TARGETS :=  $(DATA)
+TARGETS :=  $(RAW_DATA) $(DOCS)
 
 EXTERNAL_DATA := data/external/fama_french_12_industries.csv \
 	data/external/fama_french_48_industries.csv
 
 WRDS_DATA := data/pulled/audit_analytics_afee_data.rds \
 	data/pulled/audit_analytics_cblock_data.rds
-
-GENERATED_DATA := data/generated/afees_eu.rds
 
 RSCRIPT := Rscript --encoding=UTF-8
 
@@ -35,19 +34,16 @@ config.csv:
 $(WRDS_DATA): code/R/pull_wrds_data.R code/R/read_config.R config.csv
 	$(RSCRIPT) code/R/pull_wrds_data.R
 
-$(GENERATED_DATA): $(WRDS_DATA) $(EXTERNAL_DATA) code/R/prepare_data.R
+$(RAW_DATA): $(WRDS_DATA) code/R/prepare_data.R
 	$(RSCRIPT) code/R/prepare_data.R
 
-$(RESULTS):	$(GENERATED_DATA) code/R/do_analysis.R
-	$(RSCRIPT) code/R/do_analysis.R
+data/generated/afees_eu_clean.rds: $(EXTERNAL_DATA) \
+	data/generated/afees_eu.rds code/R/clean_data.R 
+	$(RSCRIPT) code/R/clean_data.R
 
-$(DATA): $(GENERATED_DATA)
-
-$(PAPER): doc/paper.Rmd doc/references.bib $(RESULTS) 
-	$(RSCRIPT) -e 'library(rmarkdown); render("doc/paper.Rmd")'
-	mv doc/paper.pdf output
-	rm -f doc/paper.ttt doc/paper.fff
+output/afees_eu_eda.pdf: doc/afees_eu_eda.Rmd data/generated/afees_eu_clean.rds 
+	$(RSCRIPT) -e 'library(rmarkdown); render("doc/afees_eu_eda.Rmd", quiet = TRUE)'
+	mv doc/afees_eu_eda.pdf output
+	cp output/afees_eu_eda.pdf afees_eu_eda.pdf
+	rm -f doc/afees_eu_eda.ttt doc/afees_eu_eda.fff doc/afees_eu_eda.log
 	
-$(PRESENTATION): doc/presentation.Rmd $(RESULTS) doc/beamer_theme_trr266.sty
-	$(RSCRIPT) -e 'library(rmarkdown); render("doc/presentation.Rmd")'
-	mv doc/presentation.pdf output

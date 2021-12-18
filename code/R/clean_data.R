@@ -3,10 +3,13 @@
 #
 # See LICENSE file for details 
 # ------------------------------------------------------------------------------
-library(dplyr)
-library(readr)
-library(lubridate)
-library(ExPanDaR)
+suppressMessages({
+  library(dplyr)
+  library(readr)
+  library(lubridate)
+})
+
+message("Cleaning EU audit fee data... ", appendLF = FALSE)
 
 afees_eu <- readRDS("data/generated/afees_eu.rds")
 ff12 <- read_csv(
@@ -49,29 +52,51 @@ if (nrow(dups) > 0) stop(
 
 afees_eu_clean <- afees_eu_desc %>%
   ungroup() %>%
-  filter(year > 2008, year < 2021) %>%
+  filter(
+    year > 2008, year < 2021,
+    assets_eur > 0, revenues_eur > 0, market_cap_eur > 0,
+    total_fees_eur > 0, audit_fees_eur > 0
+  )  %>%
   mutate(
-    ltotal_fees = log((1 + total_fees_eur)),
-    laudit_fees = log((1 + audit_fees_eur)),
+    entity_map_fkey = as.factor(entity_map_fkey),
+    ltotal_fees = log(total_fees_eur),
+    laudit_fees = log(audit_fees_eur),
     lnaudit_fees = log((1 + total_non_audit_fees_eur)),
     lassets = log(assets_eur),
     lrevenues = log(revenues_eur),
     lmarket_cap = log(market_cap_eur),
-    tfees_ta = total_fees_eur/assets_eur
+    tfees_ta = total_fees_eur/assets_eur,
+    audit_fees = audit_fees_eur/1e6, 
+    naudit_fees = total_non_audit_fees_eur/1e6,
+    total_fees = total_fees_eur/1e6,
+    assets = assets_eur/1e6,
+    revenues = revenues_eur/1e6,
+    market_cap = market_cap_eur/1e6,
   ) %>%
   left_join(ff12, by = "sic") %>%
   filter(
-    assets_eur > 0, revenues_eur > 0, market_cap_eur > 0,
-    total_fees_eur > 0, audit_fees_eur > 0, !is.na(ff12_ind)
+    !is.na(ff12_ind)
   )  %>%
   select(
-    entity_map_fkey, isin, entity_name, hq_iso2c, ff12_ind, year, lassets, lrevenues, 
+    entity_map_fkey, isin, entity_name, hq_iso2c, ff12_ind, year, 
+    audit_fees, naudit_fees, total_fees, assets, revenues, market_cap,
+    lassets, lrevenues, 
     lmarket_cap, big4, laudit_fees, lnaudit_fees, ltotal_fees
   ) %>% group_by(hq_iso2c) %>% filter(n() >= 1000) %>% ungroup()
 
+saveRDS(afees_eu_clean, "data/generated/afees_eu_clean.rds")
+
+message("done!")
+
 if (FALSE) {
+  # You can use the below to interactively check and explore your data.
+  # Needs the ExPanDaR package. To install it, run: install.packages("ExPanDaR")
+  
+  library(ExPanDaR)
+  
   ExPanD(
-    afees_eu_clean, cs_id = c("entity_map_fkey", "isin", "entity_name"), ts_id = "year"
+    afees_eu_clean, cs_id = c("entity_map_fkey", "isin", "entity_name"), 
+    ts_id = "year"
   )
   
   cfg_list <- readRDS("data/external/expand_afee_eda.rds")

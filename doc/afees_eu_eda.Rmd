@@ -13,7 +13,7 @@ date: |
   | `r loc <- Sys.getlocale(category = "LC_TIME"); Sys.setlocale("LC_TIME", "C"); fdate <- format(Sys.time(), '%B %e, %Y'); Sys.setlocale("LC_TIME", loc); fdate` \vspace{1cm}
   
 abstract: |
-  | Building on a sample of European publicly-listed clients and their audit fees I explore the market share of Big 4 auditing firm across time, countries and industries. I further assess the audit fee differential between Big 4 and non Big 4 firms. 
+  | Building on a sample of European publicly-listed clients and their audit fees I explore the market share of Big 4 auditing firm across time, countries and industries. I further assess the audit fee premium of Big 4 Auditing firms. 
   | \vspace{6cm}
 
 output:
@@ -33,6 +33,10 @@ header-includes:
   - \usepackage[hang,flushmargin]{footmisc}
   - \usepackage{caption} 
   - \captionsetup[table]{skip=24pt,font=bf}
+  - \captionsetup[figure]{skip=24pt,font=bf}
+  - \usepackage{floatrow}
+  - \floatsetup[figure]{capposition=top}
+  - \floatsetup[table]{capposition=top}
   - \usepackage{array}
   - \usepackage{threeparttable}
   - \usepackage{adjustbox}
@@ -41,99 +45,36 @@ header-includes:
 ---
 
 ```{r setup, message=FALSE, warning=FALSE, include=FALSE}
-library(tidyverse)
-library(lubridate)
-library(knitr)
-library(ExPanDaR)
-library(kableExtra)
+suppressMessages({
+  library(tidyverse)
+  library(lubridate)
+  library(knitr)
+  library(ExPanDaR)
+  library(kableExtra)
+})
+
+message("Preparing EDA PDF... ", appendLF = FALSE)
+
 opts_chunk$set(fig.pos = 'p') # Places figures on their own pages
 opts_chunk$set(out.width = '100%', dpi=300)
-opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, cache = TRUE)
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 options(
   ggplot2.discrete.colour = RColorBrewer::brewer.pal(8, "Set1"), 
   ggplot2.discrete.fill = RColorBrewer::brewer.pal(8, "Set1")
 )
+
+afees_eu_clean <- readRDS("../data/generated/afees_eu_clean.rds")
 ```
 
-```{r prepData, include=FALSE}
-afees_eu <- readRDS("../data/generated/afees_eu.rds")
-ff12 <- read_csv(
-  "../data/external/fama_french_12_industries.csv", col_types = cols()
-)
-
-afees_eu_desc <- afees_eu %>%
-  group_by(entity_map_fkey, isin, entity_name, audit_fee_fiscal_year_end) %>%
-  arrange(entity_map_fkey, isin, entity_name, audit_fee_fiscal_year_end) %>%
-  summarise(
-    year = unique(year(audit_fee_fiscal_year_end)),
-    sic = unique(sic_code_fkey),
-    hq_iso2c = unique(headquarter_country_code), 
-    big4 = any(1:4 %in% auditor_fkey),
-    audit_fees_eur = sum(audit_fees_eur),
-    total_non_audit_fees_eur = sum(total_non_audit_fees_eur), 
-    total_fees_eur = sum(total_fees_eur), 
-    market_cap_eur = mean(market_cap_eur, na.rm = TRUE), 
-    revenues_eur = mean(revenue_eur, na.rm = TRUE),
-    assets_eur = mean(assets_eur, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  group_by(entity_map_fkey) %>%
-  filter(
-    is.na(lag(audit_fee_fiscal_year_end)) | 
-      ((month(audit_fee_fiscal_year_end) == 
-        month(lag(audit_fee_fiscal_year_end))) &
-          (day(audit_fee_fiscal_year_end) == 
-             day(lag(audit_fee_fiscal_year_end))))
-  ) %>%
-  select(-audit_fee_fiscal_year_end) 
-
-dups <- afees_eu_desc %>%
-  group_by(entity_map_fkey, year) %>%
-  filter(n() > 1)
-
-if (nrow(dups) > 0) stop(
-  "Audit fee descriptive data has duplicates. This should not happen"
-)
-
-afees_eu_clean <- afees_eu_desc %>%
-  ungroup() %>%
-  filter(year > 2008, year < 2021) %>%
-  mutate(
-    ltotal_fees = log((1 + total_fees_eur)),
-    laudit_fees = log((1 + audit_fees_eur)),
-    lnaudit_fees = log((1 + total_non_audit_fees_eur)),
-    lassets = log(assets_eur),
-    lrevenues = log(revenues_eur),
-    lmarket_cap = log(market_cap_eur),
-    tfees_ta = total_fees_eur/assets_eur
-  ) %>%
-  left_join(ff12, by = "sic") %>%
-  filter(
-    assets_eur > 0, revenues_eur > 0, market_cap_eur > 0,
-    total_fees_eur > 0, audit_fees_eur > 0, !is.na(ff12_ind)
-  )  %>%
-  select(
-    entity_map_fkey, isin, entity_name, hq_iso2c, ff12_ind, year, lassets, lrevenues, 
-    lmarket_cap, big4, laudit_fees, lnaudit_fees, ltotal_fees
-  ) %>% group_by(hq_iso2c) %>% filter(n() >= 1000) %>% ungroup()
-
-```
 
 ```{r Desc, echo = FALSE, results = "asis"}
 
 var_labels <- c(
-  "Audit fees", "Assets", "Sales", "Market Capitalization", "Big 4"
+  "Audit fees", "Assets", "Revenues", "Market Capitalization", "Big 4"
 )
 desc_rnames <- paste0("\\textit{", var_labels, "}")
 
 smp <- afees_eu_clean %>%
-  mutate(
-    entity_map_fkey = as.factor(entity_map_fkey),
-    audit_fees = (exp(laudit_fees) - 1)/1e6,
-    assets = exp(lassets)/1e6,
-    revenues = exp(lrevenues)/1e6,
-    market_cap = exp(lmarket_cap)/1e6,
-  ) %>%
   select(
     hq_iso2c, entity_map_fkey, entity_name, year, ff12_ind, 
     audit_fees, assets, revenues, market_cap, big4,
@@ -166,17 +107,18 @@ latex_tab <- c(
   "\\footnotetext",
   sprintf(
     paste(
-      "\\item Note: The data is obtained from the Audit Analytics as provided",
-      "by WRDS. The sample covers the period %d to %d and %s unique clients",
-      "form %d countries. Countries with less tham 1,000 observations are excluded.",
-      "For audits involving multiple audit firms, audit fees are aggregated",
-      "at the client-fiscal year level so that Audit fees represents the audit",
-      "fees that the client incurred during a fiscal year. Assets and market",
-      "capitalization are measured at the fiscal year end. Revenues reresent",
-      "net sales during the fiscal year.", 
-      "All values are measured in Mio. Euro. Big 4 is a binary variable",
-      "taking the value of one whenever a Big 4 auditing firm (KPMG, PWC,",
-      "EY or Deloitte) is involved in the audit."
+      "\\item Notes: The data is obtained from Audit Analytics EU as provided",
+      "by WRDS. The sample covers the periods %d to %d and %s unique clients",
+      "form %d countries. Countries with less than 1,000 client-fiscal year", 
+      "observations are excluded. For audits involving multiple audit firms", 
+      "audit fees are aggregated at the client-fiscal year level so that",
+      "\\textit{Audit fees} represents the audit fees that the client incurred", 
+      "during a fiscal year. \\textit{Assets} and \\textit{Market",
+      "Capitalization} are client values and measured at the fiscal year end.", 
+      "\\textit{Revenues} reresents client net sales during the fiscal year.", 
+      "All values are measured in Mio. Euro. \\textit{Big 4} is a binary", 
+      "variable taking the value of one whenever a Big 4 auditing firm", 
+      "(KPMG, PWC, EY or Deloitte) is involved in the audit."
     ),
     min(smp_desc$year), max(smp_desc$year), 
     format(length(unique(smp_desc$entity_map_fkey)), big.mark = ","),
@@ -192,19 +134,21 @@ cat(paste(latex_tab, collapse = "\n"))
 
 
 
-```{r YearBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig:YearBar}Number of Clients by Year"}
+```{r YearBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig::YearBar}Number of Clients by Year"}
 
 ggplot(afees_eu_clean, aes(x = year, fill = big4)) +
   geom_bar() + 
-  labs(x = "", y = "Fiscal Year", fill = "Auditor") +
+  labs(x = "", y = "Number of Clients", fill = "Auditor") +
+  scale_y_continuous(labels = scales::label_comma()) +
   scale_fill_discrete(labels = c("Non Big 4", "Big 4")) +
   theme_minimal() + theme(
-    legend.position = "bottom"
+    legend.position = "bottom",
+    text = element_text(family = "serif")
   )
   
 ```
 
-```{r CountryBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig:CountryBar}Number of Clients by Country"}
+```{r CountryBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig::CountryBar}Number of Client Years by Country"}
 
 df <- afees_eu_clean %>% mutate(
   country = countrycode::countrycode(
@@ -214,23 +158,27 @@ df <- afees_eu_clean %>% mutate(
   
 ggplot(df, aes(x = country, fill = big4)) +
   geom_bar() + 
-  labs(x = "", y = "Number of Clients", fill = "Auditor") +
+  labs(x = "", y = "Number of Client Years", fill = "Auditor") +
   scale_fill_discrete(labels = c("Non Big 4", "Big 4")) +
+  scale_y_continuous(labels = scales::label_comma()) +
   theme_minimal() + theme(
+    text = element_text(family = "serif"),
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
     legend.position = "bottom"
   )
   
 ```
 
-```{r IndustryBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig:IndustryBar}Number of Clients by Industry"}
+```{r IndustryBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig::IndustryBar}Number of Client Years by Industry"}
 
 ggplot(afees_eu_clean, aes(x = ff12_ind, fill = big4)) +
   geom_bar() + 
-  labs(x = "", y = "Number of Clients", fill = "Auditor") +
+  labs(x = "", y = "Number of Client Years", fill = "Auditor") +
   scale_fill_discrete(labels = c("Non Big 4", "Big 4")) +
+  scale_y_continuous(labels = scales::label_comma()) +
   coord_flip() + 
   theme_minimal() + theme(
+    text = element_text(family = "serif"),
     legend.position = "bottom"
   )
   
@@ -238,7 +186,7 @@ ggplot(afees_eu_clean, aes(x = ff12_ind, fill = big4)) +
 
 
 
-```{r ClientMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Big4MSFeesOverTime}Realtive Client Market Share Over Time"}
+```{r ClientMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig::ClientMSRelative}Realtive Client Market Share Over Time"}
 mshares_year <- afees_eu_clean %>%
   group_by(year, big4) %>%
   summarise(
@@ -253,33 +201,45 @@ mshares_year <- afees_eu_clean %>%
 ggplot(mshares_year, aes(x = year, y = clients_p, fill = big4)) +
   geom_area() + 
   labs(x = "Fiscal Year", y = "Client Market Share [%]", fill = "Auditor") +
+  scale_y_continuous(labels = scales::label_percent()) +
   scale_fill_discrete(labels = c("Non Big 4", "Big 4")) +
-  theme_minimal() + theme(legend.position = "bottom")
+  theme_minimal() + theme(
+    text = element_text(family = "serif"),
+    legend.position = "bottom"
+  )
   
 ```
 
-```{r FeeMSAbsolute, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Big4MSFeesOverTime}Absolute Fee Market Share Over Time"}
+```{r FeeMSAbsolute, echo = FALSE, fig.align="center", fig.cap="\\label{fig::FeeMSAbsolute}Absolute Fee Market Share Over Time"}
 
 ggplot(mshares_year, aes(x = year, y = sum_fees, fill = big4)) +
   geom_area() + 
   labs(x = "Fiscal Year", y = "Total Audit Fees [Mio. Euro]", fill = "Auditor") +
   scale_fill_discrete(labels =  c("Non Big 4", "Big 4")) +
   scale_y_continuous(labels = scales::label_comma()) +
-  theme_minimal() + theme(legend.position = "bottom")
+  theme_minimal() + 
+  theme(
+    text = element_text(family = "serif"),
+    legend.position = "bottom"
+  )
 ```
 
-```{r FeeMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Big4MSFeesOverTime}Realtive Fee Market Share of Big 4 Firms Over Time"}
+```{r FeeMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig::FeeMSRelative}Realtive Fee Market Share Over Time"}
 
 ggplot(mshares_year, aes(x = year, y = sum_fees_p, fill = big4)) +
   geom_area() + 
   labs(x = "Fiscal Year", y = "Fee Market Share [%]", fill = "Auditor") +
   scale_fill_discrete(labels = c("Non Big 4", "Big 4")) +
   scale_y_continuous(labels = scales::label_percent()) +
-  theme_minimal() + theme(legend.position = "bottom")
+  theme_minimal() + 
+  theme(
+    text = element_text(family = "serif"),
+    legend.position = "bottom"
+  )
   
 ```
 
-```{r BoxPlot, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Scatter}Audit Fees by Audit Type"}
+```{r BoxPlot, echo = FALSE, fig.align="center", fig.cap="\\label{fig::BoxPlot}Audit Fees by Auditor Type"}
 
 df <- afees_eu_clean %>%
   mutate(
@@ -287,26 +247,35 @@ df <- afees_eu_clean %>%
     audit_fees = (exp(laudit_fees) - 1)
   )
 
-ggplot(df, aes(x = big4, y = audit_fees, color = big4)) +
-  geom_boxplot() + 
-  labs(x = "", y = "Audit Fees [Euro]", fill = "Auditor") +
+ggplot(df, aes(x = big4, y = audit_fees, color = big4, fill = big4)) +
+  geom_boxplot(fill = NA, width = 0.15) + 
+  geom_violin(alpha = 0.1, color = NA) +
+  labs(x = "", y = "Audit Fee [Euro]", fill = "Auditor") +
   scale_x_discrete(labels = c("Non Big 4", "Big 4")) +
   scale_y_log10(labels = scales::label_comma()) +
-  theme_minimal() + theme(legend.position = "none")
+  theme_minimal() + 
+  theme(
+    text = element_text(family = "serif"),
+    legend.position = "none"
+  )
   
 ```
 
 
-```{r Scatter, echo = FALSE, fig.align="center", fig.cap="\\label{fig:Scatter}Audit Fees by Firm Size"}
+```{r Scatter, echo = FALSE, fig.align="center", fig.cap="\\label{fig::Scatter}Audit Fees by Firm Size"}
 
 ggplot(df, aes(x = assets, y = audit_fees, color = big4)) +
   geom_point(alpha = 0.1) + 
-  labs(x = "Total Assets [Euro]", y = "Audit Fees [Euro]", fill = "Auditor") +
+  labs(x = "Total Assets [Euro]", y = "Audit Fee [Euro]", color = "Auditor") +
   scale_color_discrete(labels = c("Non Big 4", "Big 4")) +
   scale_x_log10(labels = scales::label_comma()) +
   scale_y_log10(labels = scales::label_comma()) +
-  theme_minimal() + theme(legend.position = "bottom")
-  
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  theme_minimal() + theme(
+    text = element_text(family = "serif"),
+    legend.position = "bottom"
+  )
+
 ```
 
 
@@ -325,19 +294,19 @@ lat_tab <- unlist(strsplit(tab$kable_ret, "\n"))
 lat_tab[7:(6 + length(var_names))] <- str_replace(
   lat_tab[7:(6 + length(var_names))], fixed(var_names), var_labels
 )
-lat_tab[4] <- "\\\\[-0.9ex]\\hline \\hline \\\\[-0.9ex]"
+lat_tab[4] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
 lat_tab[6] <- "\\hline\\\\[-1.8ex]"
-lat_tab[(7 + length(var_names))] <- "\\\\[-0.9ex]\\hline \\hline \\\\[-0.9ex]"
+lat_tab[(7 + length(var_names))] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
 lat_tab[(9 + length(var_names))] <- "\\begin{tablenotes}[flushleft]"
 lat_tab[(10 + length(var_names))] <- sprintf(
   paste(
-    "\\item This table reports Pearson correlations above and Spearman", 
+    "\\item Notes: This table reports Pearson correlations above and Spearman", 
     "correlations below the diagonal. Number of observations: %s.", 
     "Correlations with significance levels below 5\\%% appear in bold print."
   ), format(nrow(smp), big.mark = ",")
 )
 latex_tab <- c(
-  "\\begin{table}[!htbp]",  
+  "\\begin{table}[t]",  
   "\\centering",
   "\\caption{\\label{tab:corr}Correlations}",
   lat_tab,
@@ -378,10 +347,13 @@ for (i in seq(15, 24, by = 3)) {
 tab[32:33] <- str_replace_all(tab[32:33], fixed("entity\\_map\\_fkey"), "Client")
 tab[32:33] <- str_replace_all(tab[32:33], fixed("year"), "Year")
 tab <- tab[c(9, 10, 13:36, 38)]
+tab[1] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+tab[27] <- tab[1]
+
 
 latex_tab <- c(
-  "\\begin{table}[!htbp]",  
-  "\\caption{\\label{tab:reg}Regressions}",
+  "\\begin{table}[!t]",  
+  "\\caption{\\label{tab:reg}Audit Fee Premium Regressions}",
   "\\centering",
   "\\begin{threeparttable}",
   "\\begin{tabular}{lcccc}",
@@ -389,8 +361,9 @@ latex_tab <- c(
   "\\end{tabular}",
   "\\begin{tablenotes}[flushleft]",
   "\\item",
-  "This table presents the results of four OLS regressions.", 
-  "Sample and all variables are as defined in Table 1.",
+  "Notes: This table presents the results of four OLS regressions regressing", 
+  "audit fees on various sets of covariates.",
+  "The sample and all variables are as defined in Table 1.",
   "Standard errors are presented in parentheses below the coefficients.",
   "$^{*}$/$^{**}$/$^{***}$ indicate two-sided significance levels below",
   "10/5/1 \\%, respectively.",
@@ -399,10 +372,8 @@ latex_tab <- c(
   "\\end{table}"
 )
 cat(paste(latex_tab, collapse = "\n"))
+
+message("done!")
 ```
 
-\pagebreak
-
-\setcounter{table}{0}
-\renewcommand{\thetable}{\arabic{table}}
 
