@@ -186,7 +186,7 @@ ggplot(afees_eu_clean, aes(x = ff12_ind, fill = big4)) +
 
 
 
-```{r ClientMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig::ClientMSRelative}Realtive Client Market Share Over Time"}
+```{r ClientMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig::ClientMSRelative}Relative Client Market Share Over Time"}
 mshares_year <- afees_eu_clean %>%
   group_by(year, big4) %>%
   summarise(
@@ -224,7 +224,7 @@ ggplot(mshares_year, aes(x = year, y = sum_fees, fill = big4)) +
   )
 ```
 
-```{r FeeMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig::FeeMSRelative}Realtive Fee Market Share Over Time"}
+```{r FeeMSRelative, echo = FALSE, fig.align="center", fig.cap="\\label{fig::FeeMSRelative}Relative Fee Market Share Over Time"}
 
 ggplot(mshares_year, aes(x = year, y = sum_fees_p, fill = big4)) +
   geom_area() + 
