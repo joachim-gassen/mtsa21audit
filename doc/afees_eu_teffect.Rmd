@@ -1,0 +1,467 @@
+---
+title: |
+  | The Fee Effects of the 2014 EU Auditing Reforms: 
+  | A first glance  \vspace{1cm}
+
+author: |
+  | Joachim Gassen 
+  | TRR 266 Accounting for Transparency
+  | Humboldt-Universität zu Berlin 
+  | gassen@wiwi.hu-berlin.de
+
+date: |
+  | `r loc <- Sys.getlocale(category = "LC_TIME"); Sys.setlocale("LC_TIME", "C"); fdate <- format(Sys.time(), '%B %e, %Y'); Sys.setlocale("LC_TIME", loc); fdate` \vspace{1cm}
+  
+abstract: |
+  | I test whether the implementation of the EU audit reforms has had an effect on audit and non-audit fees. I use European clients listed on exchange-regulated equity markets as my control group. An analysis based on the full sample suffers from lack of common support between treatment and control groups and produces inconsistent findings. Limiting the sample to clients of comparable size by within country-year-industry bin propensity score matching, I document an insignificant negative effect of the EU audit regulation  on audit fees and an economically large and marginally significant negative effect on non-audit fees. I urge the reader to apply caution when interpreting my findings as they are sensitive to the matching procedure, rely on an unverified client exchange classification by Audit Analytics and are based on a small sub-sample of client data for the matched analysis, meaning that they represent a local average treatment effect for small publicly listed clients at best.   
+  | \vspace{6cm}
+
+output:
+  pdf_document: 
+    number_sections: true
+  toc: no
+fig_caption: yes
+fontsize: 11pt
+ident: yes
+
+always_allow_html: yes
+
+header-includes:
+  - \usepackage{setspace}\doublespacing
+  - \setlength{\parindent}{4em}
+  - \setlength{\parskip}{0em}
+  - \usepackage[hang,flushmargin]{footmisc}
+  - \usepackage{caption} 
+  - \captionsetup[table]{skip=24pt,font=bf}
+  - \captionsetup[figure]{skip=24pt,font=bf}
+  - \usepackage{floatrow}
+  - \floatsetup[figure]{capposition=top}
+  - \floatsetup[table]{capposition=top}
+  - \usepackage{array}
+  - \usepackage{threeparttable}
+  - \usepackage{adjustbox}
+  - \usepackage{graphicx}
+  - \usepackage{csquotes}
+---
+
+```{r setup, message=FALSE, warning=FALSE, include=FALSE}
+suppressMessages({
+  library(tidyverse)
+  library(lubridate)
+  library(knitr)
+  library(MatchIt)
+  library(ExPanDaR)
+  library(kableExtra)
+  library(modelsummary)
+})
+
+message("Preparing teffect PDF... ", appendLF = FALSE)
+
+opts_chunk$set(fig.pos = 'p') # Places figures on their own pages
+opts_chunk$set(out.width = '100%', dpi=300)
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(
+  ggplot2.discrete.colour = RColorBrewer::brewer.pal(8, "Set1"), 
+  ggplot2.discrete.fill = RColorBrewer::brewer.pal(8, "Set1")
+)
+options("modelsummary_format_numeric_latex" = "plain")
+
+# toprule <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+# bottomrule <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+
+toprule <- "\\toprule"
+bottomrule <- "\\bottomrule"
+
+reg_exchange <- readRDS("../data/generated/afees_eu.rds") %>%
+  select(entity_map_fkey, is_eu_regulated_submarket) %>%
+  mutate(
+    entity_map_fkey = factor(entity_map_fkey),
+    is_eu_regulated_submarket = !is.na(is_eu_regulated_submarket)) %>%
+  distinct()
+
+if (length(unique(reg_exchange$entity_map_fkey)) != nrow(reg_exchange))
+  stop("regulated exchange indicator of Audit Analytics seems to be time-variant.")
+
+tment_smp <- readRDS("../data/generated/afees_eu_clean.rds") %>%
+  left_join(reg_exchange, by = "entity_map_fkey") %>%
+  left_join(
+    read_csv(
+      "../data/external/eu_audit_directive_implementation_dates.csv",
+      show_col_types = FALSE
+    ),
+    by = "hq_iso2c"
+  ) %>% filter(
+    !is.na(directive_implementation_date), !is.na(is_eu_regulated_submarket)
+  ) %>%
+  mutate(
+    treatment = is_eu_regulated_submarket,
+    post = year >= year(directive_implementation_date),
+    treated = treatment & post
+  ) %>%
+  select(-is_eu_regulated_submarket, -directive_implementation_date)
+```
+
+
+```{r Desc, echo = FALSE, results = "asis"}
+prep_desc_table <- function(df, smp_name) {
+  var_labels <- c(
+    "Treatment", "Audit fees", "Non-audit fees", "Log(Audit fees)", 
+    "Log(Non-audit fees)","Assets", "Revenues", 
+    "Market Capitalization", "Log(Assets)", "Log(Revenues)", 
+    "Log(Market Capitalization)", "Big 4"
+  )
+
+  desc_rnames <- paste0("\\textit{", var_labels, "}")
+  
+  smp <- df %>%
+    mutate(
+      big4 = as.integer(big4),
+      Treatment =  ifelse(treatment, 'Treatment', 'Control')
+    ) %>%
+    select(
+      entity_map_fkey, year, hq_iso2c, Treatment, 
+      audit_fees, naudit_fees, laudit_fees, lnaudit_fees, 
+      assets, revenues, market_cap, 
+      lassets, lrevenues, lmarket_cap, big4
+    )
+  
+  if (smp_name == "Full Sample") smp_desc <- paste(
+      "The data is obtained from Audit Analytics EU as provided by WRDS.",       
+      "Countries with less than 1,000 observations are excluded."       
+  )
+   else smp_desc <- paste(
+      "The data is obtained from Audit Analytics EU as provided by WRDS.",
+      "To establish covariate balance between treatment and control",
+      "observations, data are matched within country, year and Fama French",
+      "12 industry bins by logged values of size, revenue and market",
+      "capitalization as well as a big 4 dummy. At least 50 obvservations",
+      "with a minimum of 10 observations per group are required for each",
+      "bin. Matching is done based on logit propensity scores without",
+      "replacement and a caliper of 0.05."
+   )
+    
+  notes_tab <- sprintf(
+    paste(
+      smp_desc,
+      "The sample covers the periods %d to %d and %s unique clients",
+      "form %d countries. For audits involving multiple audit firms",
+      "audit fees are aggregated at the client-fiscal year level so that",
+      "\\\\textit{Audit fees} (\\\\textit{Non-audit fees}) represent the",
+      "(non) audit fees that the client incurred during a fiscal year.", 
+      "\\\\textit{Assets} and \\\\textit{Market Capitalization} are client", 
+      "values and measured at the fiscal year end.",
+      "\\\\textit{Revenues} represents client net sales during the fiscal year.",
+      "All values are measured in Mio. Euro. \\\\textit{Big 4} is a binary",
+      "variable taking the value of one whenever a Big 4 auditing firm",
+      "(KPMG, PWC, EY or Deloitte) is involved in the audit.",
+      "The treatment group comprises clients that are listed on", 
+      "EU-regulated markets while the control group comprises clients that are", 
+      "listed on exchange-regulated markets."
+    ),
+    min(smp$year), max(smp$year), 
+    format(length(unique(smp$entity_map_fkey)), big.mark = ","),
+    length(unique(smp$hq_iso2c))
+  )
+  
+  smp <- smp %>% select(-entity_map_fkey, -year, -hq_iso2c)
+  names(smp) <- var_labels
+  datasummary_balance(
+    ~Treatment, data = smp,
+    title = sprintf(
+      "Descriptive Statistics and Covariate Balance (%s)", smp_name
+    ),
+    fmt = function(x) format(round(x, 3), big.mark = ","),
+    output = "latex"
+  ) %>%
+    footnote(
+      general = notes_tab, footnote_as_chunk = TRUE, general_title = "",
+      threeparttable = TRUE, escape = F
+    ) 
+}
+
+prep_desc_table(tment_smp, "Full Sample")
+```
+
+
+
+```{r YearBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig::YearBar}Number of Clients by Year and Group (Full Sample)"}
+
+prep_year_plot <- function(df) {
+  ggplot(df, aes(x = year, fill = treatment)) +
+    geom_bar() + 
+    labs(x = "", y = "Number of Clients", fill = "") +
+    scale_y_continuous(labels = scales::label_comma()) +
+    scale_fill_discrete(labels = c(
+      "Control (Exchange regulated)", "Treatment (EU regulated)")) +
+    theme_minimal() + theme(
+      legend.position = "bottom",
+      text = element_text(family = "serif")
+    )
+}
+
+prep_year_plot(tment_smp)
+```
+
+```{r CountryBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig::CountryBar}Number of Client Years by Country (Full Sample)"}
+
+prep_country_plot <- function(df) { 
+  df <- df %>% mutate(
+    country = countrycode::countrycode(
+      hq_iso2c, origin = "iso2c", destination = "country.name" 
+    )
+  )
+
+ggplot(df, aes(x = country, fill = treatment)) +
+  geom_bar() + 
+  labs(x = "", y = "Number of Clients", fill = "") +
+  scale_y_continuous(labels = scales::label_comma()) +
+  scale_fill_discrete(labels = c(
+    "Control (Exchange regulated)", "Treatment (EU regulated)")) +
+  theme_minimal() + theme(
+    text = element_text(family = "serif"),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    legend.position = "bottom"
+  )
+}
+
+prep_country_plot(tment_smp)
+```
+
+```{r IndustryBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig::IndustryBar}Number of Client Years by Industry (Full Sample)"}
+
+prep_industry_plot <- function(df) { 
+  ggplot(df, aes(x = ff12_ind, fill = treatment)) +
+    geom_bar() + 
+    labs(x = "", y = "Number of Clients", fill = "") +
+    scale_y_continuous(labels = scales::label_comma()) +
+    scale_fill_discrete(labels = c(
+      "Control (Exchange regulated)", "Treatment (EU regulated)")) +
+    coord_flip() + 
+    theme_minimal() + theme(
+      text = element_text(family = "serif"),
+      legend.position = "bottom"
+    )
+}
+prep_industry_plot(tment_smp)
+```
+
+
+```{r LinePlotAF, echo = FALSE, fig.align="center", fig.cap="\\label{fig::LinePlotAF}Audit Fees by Listing Type (Full Sample)"}
+
+prep_line_plot <- function(df, dep_var, dep_var_label) {
+  df <- df %>%
+    mutate(
+      year = factor(year),
+      dv = {{dep_var}}
+    ) %>% group_by(treatment, year) %>%
+    mutate(
+      mean = exp(mean(dv)),
+      lb = exp(mean(dv) - 1.96*sd(dv)/sqrt(n())),
+      ub = exp(mean(dv) + 1.96*sd(dv)/sqrt(n()))
+    )
+  
+  ggplot(df, aes(x = year, y = mean, color = treatment, group = treatment)) +
+    geom_line() +
+    geom_pointrange(
+      aes(ymin = lb, ymax = ub),
+      position=position_dodge(width = 0.2)
+    ) +
+    geom_vline(
+      xintercept = min(as.numeric(df$year[df$treated])) - 0.5, linetype = 2 
+    ) +
+    labs(x = "", y = dep_var_label, fill = "", color = "") +
+    scale_color_discrete(labels = c(
+      "Control (Exchange regulated)", "Treatment (EU regulated)")) +
+    scale_y_log10(labels = scales::label_comma()) +
+    theme_minimal() + 
+    theme(
+      text = element_text(family = "serif"),
+      legend.position = "bottom"
+    )
+}
+
+prep_line_plot(tment_smp, laudit_fees, "Audit fees [Euro]")  
+```
+
+```{r LinePlotNAF, echo = FALSE, fig.align="center", fig.cap="\\label{fig::LinePlotNAF}Non-audit Fees by Listing Type (Full Sample)"}
+
+prep_line_plot(tment_smp, lnaudit_fees, "Non-audit fees [Euro]")  
+```
+
+
+``` {r CorrTable, results="asis"}
+prep_corr_table <- function(df, smp_name) {
+  var_labels <- c(
+    "Ln(Audit fees)", "Ln(Non-audit fees)", "Ln(Assets)", "Ln(Revenues)", 
+    "Ln(Market Capitalization)", "Big 4"
+  )
+  var_names <- c("laudit_fees", "lnaudit_fees", "lassets", "lrevenues", 
+                 "lmarket_cap", "big4")
+  tab <- prepare_correlation_table(
+    df %>% select(all_of(var_names)), format = "latex", booktabs = T
+  )
+  lat_tab <- unlist(strsplit(tab$kable_ret, "\n"))
+  lat_tab <- lat_tab[!lat_tab == "\\addlinespace"]
+  lat_tab[7:(6 + length(var_names))] <- str_replace(
+    lat_tab[7:(6 + length(var_names))], fixed(var_names), var_labels
+  )
+  lat_tab[4] <- toprule
+  lat_tab[6] <- "\\hline\\\\[-1.8ex]"
+  lat_tab[(7 + length(var_names))] <- bottomrule
+  lat_tab[(9 + length(var_names))] <- "\\begin{tablenotes}[flushleft]"
+  lat_tab[(10 + length(var_names))] <- sprintf(
+    paste(
+      "\\item Notes: This table reports Pearson correlations above and Spearman", 
+      "correlations below the diagonal. Number of observations: %s.", 
+      "Correlations with significance levels below 5\\%% appear in bold print.",
+      sprintf(
+        "The sample and all variables are as defined in Table %d.",
+        ifelse(smp_name == "Full Sample", 1, 4)
+      )      
+    ), format(nrow(df), big.mark = ",")
+  )
+  latex_tab <- c(
+    "\\begin{table}[t]",  
+    "\\centering",
+    sprintf(
+      "\\caption{\\label{tab:%s}Correlations (%s)}", 
+      ifelse(smp_name == "Full Sample", "corr", "corrM"), smp_name
+    ),
+     lat_tab,
+    "\\end{table}"
+  )
+  cat(paste(latex_tab, collapse = "\n"))
+}
+
+prep_corr_table(tment_smp, "Full Sample")
+```
+
+``` {r RegTable, results="asis"}
+prep_reg_table <- function(df, smp_name) {
+  var_labels <- c(
+    "Ln(Audit fees)", "Ln(Non-audit fees)", "Ln(Assets)", "Ln(Revenues)", 
+    "Ln(Market Capitalization)", "Big 4"
+  )
+  var_names <- c("laudit_fees", "lnaudit_fees", "lassets", "lrevenues", 
+                 "lmarket_cap", "big4")
+  tab <- prepare_regression_table(
+    df, c(rep("laudit_fees", 2), rep("lnaudit_fees", 2)), 
+    idvs = list(
+      c("treatment", "post", "treated"),  
+      c("treated", "big4", "lassets", "lrevenues", "lmarket_cap"),  
+      c("treatment", "post", "treated"),  
+      c("treated", "big4", "lassets", "lrevenues", "lmarket_cap")
+    ),
+    feffects = list("", c("entity_map_fkey", "year"), "", c("entity_map_fkey", "year")),
+    clusters = list("", c("entity_map_fkey", "year"), "", c("entity_map_fkey", "year")),
+    format = "latex"
+  )$table
+  
+  tab[12] <- paste(
+    "\\\\[-1.8ex] &", var_labels[3], " & ", var_labels[3], " & ",
+    var_labels[4], " & ", var_labels[4],  " \\\\ "
+  )
+  esc_var_names <- str_replace_all(var_names, fixed ("_"), "\\_")
+  reg_names <- tibble(
+    var_name = c("treatment", "post", "treated", esc_var_names[c(6, 3:5)]),
+    label = c("Treatment", "Post", "Treatment $\\times$ Post" , var_labels[c(6, 3:5)])
+  )
+  for (i in seq(15, 12 + 3*nrow(reg_names), by = 3)) {
+    pos <- (i-12)/3
+    tab[i] <- str_replace(
+      tab[i], fixed(reg_names$var_name[pos]), reg_names$label[pos]
+    )
+  }
+  
+  fecl <- (20 + 3*nrow(reg_names)):(21 + 3*nrow(reg_names))
+  tab[fecl] <- str_replace_all(tab[fecl], fixed("entity\\_map\\_fkey"), "Client")
+  tab[fecl] <- str_replace_all(tab[fecl], fixed("year"), "Year")
+  tab <- tab[9:(3*nrow(reg_names) + 24)]
+  tab[1] <- toprule
+  tab[length(tab) + 1] <- bottomrule
+  
+  
+  latex_tab <- c(
+    "\\begin{table}[!t]",
+    sprintf(
+      "\\caption{\\label{tab:%s}Difference-in-Differences Regressions (%s)}",
+      ifelse(smp_name == "Full Sample", "reg", "regM"), smp_name
+    ),
+    "\\centering",
+    "\\begin{threeparttable}",
+    "\\begin{tabular}{lcccc}",
+    tab,
+    "\\end{tabular}",
+    "\\begin{tablenotes}[flushleft]",
+    "\\item",
+    "Notes: This table presents the results of four OLS regressions regressing", 
+    "(non) audit fees on our treatment indicators and additional covariates.",
+    sprintf(
+      "The sample and all variables are as defined in Table %d.",
+      ifelse(smp_name == "Full Sample", 1, 4)
+    ),
+    "Standard errors are presented in parentheses below the coefficients.",
+    "$^{*}$/$^{**}$/$^{***}$ indicate two-sided significance levels below",
+    "10/5/1 \\%, respectively.",
+    "\\end{tablenotes}",
+    "\\end{threeparttable}",
+    "\\end{table}"
+  )
+  cat(paste(latex_tab, collapse = "\n"))
+}
+
+prep_reg_table(tment_smp, "Full Sample")
+```
+
+```{r MatchData}
+
+match_base <- tment_smp %>%
+  group_by(hq_iso2c, year, ff12_ind) %>%
+  filter(n() >= 50, sum(treatment) >= 10, sum(!treatment) > 10)
+
+create_match <- function(df) {
+  match_mod <- suppressWarnings(matchit(
+    treatment ~  lassets + lrevenues + lmarket_cap + big4,
+    method = "nearest", data = df, caliper = 0.1
+  ))
+  get_matches(match_mod, data = df)
+}
+
+matched_df <- bind_rows(group_map(match_base, ~ create_match(.x), .keep = T)) %>%
+  group_by(hq_iso2c) %>% filter(n() >= 250) %>% ungroup()
+```
+
+```{r DescM, echo = FALSE, results = "asis"}
+prep_desc_table(matched_df, "Matched Sample")
+```
+
+```{r YearBarM , echo = FALSE, fig.align="center", fig.cap="\\label{fig::YearBarM}Number of Client by Year (Matched Sample)"}
+prep_year_plot(matched_df)
+```
+
+```{r CountryBarM , echo = FALSE, fig.align="center", fig.cap="\\label{fig::CountryBarM}Number of Client Years by Country (Matched Sample)"}
+prep_country_plot(matched_df)
+```
+
+```{r IndustryBarM, echo = FALSE, fig.align="center", fig.cap="\\label{fig::IndustryBarM}Number of Client Years by Industry (Matched Sample)"}
+prep_industry_plot(matched_df)
+```
+
+```{r LinePlotAFM, echo = FALSE, fig.align="center", fig.cap="\\label{fig::LinePlotAFM}Non-audit Fees by Listing Type (Matched Sample)"}
+prep_line_plot(matched_df, laudit_fees, "Audit fees [Euro]")
+```
+
+```{r LinePlotNAFM, echo = FALSE, fig.align="center", fig.cap="\\label{fig::LinePlotNAFM}Non-audit Fees by Listing Type (Matched Sample)"}
+prep_line_plot(matched_df, lnaudit_fees, "Non-audit fees [Euro]")
+```
+
+``` {r CorrTableM, results="asis"}
+prep_corr_table(matched_df, "Matched Sample")
+```
+
+``` {r RegTableM, results="asis"}
+prep_reg_table(matched_df, "Matched Sample")
+message("done!")
+```
+
+

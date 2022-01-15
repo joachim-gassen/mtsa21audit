@@ -1,7 +1,7 @@
 # If you are new to Makefiles: https://makefiletutorial.com
 
 RAW_DATA := output/afees_eu.xlsx output/afees_eu.csv 
-DOCS := output/afees_eu_eda.pdf
+DOCS := output/afees_eu_eda.pdf output/afees_eu_teffect.pdf
 
 TARGETS :=  $(RAW_DATA) $(DOCS)
 
@@ -47,3 +47,8 @@ output/afees_eu_eda.pdf: doc/afees_eu_eda.Rmd data/generated/afees_eu_clean.rds
 	cp output/afees_eu_eda.pdf afees_eu_eda.pdf
 	rm -f doc/afees_eu_eda.ttt doc/afees_eu_eda.fff doc/afees_eu_eda.log
 	
+output/afees_eu_teffect.pdf: doc/afees_eu_teffect.Rmd data/generated/afees_eu_clean.rds 
+	$(RSCRIPT) -e 'library(rmarkdown); render("doc/afees_eu_teffect.Rmd", quiet = TRUE)'
+	mv doc/afees_eu_teffect.pdf output
+	cp output/afees_eu_teffect.pdf afees_eu_teffect.pdf
+	rm -f doc/afees_eu_teffect.ttt doc/afees_eu_teffect.fff doc/afees_eu_teffect.log

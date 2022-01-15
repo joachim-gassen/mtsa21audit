@@ -1,6 +1,6 @@
 ## Code repository for the Master's Thesis Seminar in Accounting - Winter Term 2021/2022 
 
-This repository contains the code that I used to create the dataset that I provided to you on Moodle for your empirical assignment. It also contains information on the assignments itself and my solution of the first step of the assignment. I will extend it with my "solution" for the second step after the submission deadline.
+This repository contains the code that I used to create the dataset that I provided to you on Moodle for your empirical assignments. It also contains information on the assignments itself and my solutions for both assignments. 
 
 
 ### The empirical assignment - Part 1 (due: Dec 13, 6pm)
@@ -30,6 +30,8 @@ Both reforms have already been discussed so it might be helpful to screen the pr
 A hint: The analysis of the Non-Financial Reporting Directive most likely requires you to collect additional data while you can prepare the analysis for the auditing directive with the original data set of the first assignment.
 
 As always: Feel free to help each other as long as you are handing in independent solutions. I expect a ZIP file containing the code and a PDF. The PDF has to contain a well-written abstract and self-standing tables and/or figures that could be directly transferred into a "submitable" Master's thesis. Please also prepare a reference list containing all referenced literature.
+
+I now pushed my solution of this assignment to the repo. I looked into the effects of the EU audit reforms on audit and non-audit fees. The analysis is prepared by `doc/afees_eu_teffect.Rmd` and builds on the sample of the first assignment. The resulting PDF is [here](afees_eu_teffect.pdf). See below on how to reproduce my analysis.
 
 
 ### About the repo and its structure
@@ -73,6 +75,10 @@ install_package_if_missing <- function(pkg) {
 install_package_if_missing("tidyverse")
 install_package_if_missing("lubridate")
 install_package_if_missing("writexl")
+install_package_if_missing("knitr")
+install_package_if_missing("kableextra")
+install_package_if_missing("modelsummary")
+install_package_if_missing("MatchIt")
 install_package_if_missing("ExPanDaR")
 install_package_if_missing("RPostgres")
 install_package_if_missing("DBI")
