@@ -107,8 +107,9 @@ Rscript --encoding=UTF-8 code/R/pull_wrds_data.R
 Rscript --encoding=UTF-8 code/R/prepare_data.R
 # Run code/R/clean_data.R
 Rscript --encoding=UTF-8 code/R/clean_data.R
-# Knit the pdf
+# Knit the pdfs
 Rscript --encoding=UTF-8 -e 'library(rmarkdown); render("doc/afees_eu_eda.Rmd", quiet = TRUE)'
+Rscript --encoding=UTF-8 -e 'library(rmarkdown); render("doc/afees_eu_teffect.Rmd", quiet = TRUE)'
 ```
 
 
