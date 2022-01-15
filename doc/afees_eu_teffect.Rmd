@@ -358,8 +358,8 @@ prep_reg_table <- function(df, smp_name) {
   )$table
   
   tab[12] <- paste(
-    "\\\\[-1.8ex] &", var_labels[3], " & ", var_labels[3], " & ",
-    var_labels[4], " & ", var_labels[4],  " \\\\ "
+    "\\\\[-1.8ex] &", var_labels[1], " & ", var_labels[1], " & ",
+    var_labels[2], " & ", var_labels[2],  " \\\\ "
   )
   esc_var_names <- str_replace_all(var_names, fixed ("_"), "\\_")
   reg_names <- tibble(
