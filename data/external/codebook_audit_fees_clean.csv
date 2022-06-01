@@ -1,0 +1,22 @@
+Variable,Type,Definition
+entity_map_fkey,discrete (numeric),Entity (client) identifier as provided by Audit Analytics
+isin,discrete (string),ISIN number of publicly listed client
+entity name,discrete (string),Client name
+hq_iso2c,discrete (string),Country where client is headquartered (ISO two letter code)
+ff12_ind,discrete (string),Sector as characterized by Fama and French 12 industry classification
+year,Year,Fiscal year of data
+audit_fees,continuous (Mio. €),Audit fees for client fiscal year as provided by Audit Analytics
+naudit_fees,continuous (Mio. €),"Non-audit fees (audit-related, tax, and other) for client fiscal year as provided by Audit Analytics"
+taudit_fees,continuous (Mio. €),Total fees for client fiscal year as provided by Audit Analytics
+assets,continuous (Mio. €),Total assets at the end of client fiscal year as provided by Audit Analytics
+revenues,continuous (Mio. €),Total revenues of client fiscal year as provided by Audit Analytics
+mktcap,continuous (Mio. €),Total market capitalization at the end of client fiscal year as provided by Audit Analytics
+lassets,continuous (ln(Mio €)),Natural log of assets
+lrevenues,continuous (ln(Mio €)),Natural log of revenues
+lmktcap,continuous (ln(Mio €)),Natural log of mktcap
+big4,Boolean (TRUE/FALSE),"TRUE if auditor is either KPMG, PWC, EY, or Deloitte"
+laudit_fees,continuous (ln(Mio €)),Natural log of audit_fees
+lnaudit_fees,continuous (ln(Mio €)),Natural log of naudit_fees
+ltaudit_fees,continuous (ln(Mio €)),Natural log of taudit_fees
+
+
