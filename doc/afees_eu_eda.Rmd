@@ -51,6 +51,7 @@ suppressMessages({
   library(knitr)
   library(ExPanDaR)
   library(kableExtra)
+  library(modelsummary)
 })
 
 message("Preparing EDA PDF... ", appendLF = FALSE)
@@ -62,6 +63,11 @@ options(
   ggplot2.discrete.colour = RColorBrewer::brewer.pal(8, "Set1"), 
   ggplot2.discrete.fill = RColorBrewer::brewer.pal(8, "Set1")
 )
+options("modelsummary_format_numeric_latex" = "plain")
+
+toprule <- "\\toprule"
+midrule <- "\\midrule"
+bottomrule <- "\\bottomrule"
 
 afees_eu_clean <- readRDS("../data/generated/afees_eu_clean.rds")
 ```
@@ -92,14 +98,19 @@ kable(t$df, digits = c(0, 3, 3, 3, 3, 3, 3, 3), format = "latex",
       booktabs = TRUE, escape = FALSE, linesep = "") -> kab_latex
 
 lat_tab <- unlist(strsplit(kab_latex, "\n"))
-lat_tab[6] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
-lat_tab[8] <- "\\hline\\\\[-1.8ex]"
-lat_tab[length(lat_tab) - 2] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+lat_tab[6] <- "\\hline\\\\[-1.8ex]"  # toprule 
+
+# For whatever reason, toprule gives an error 
+# "! Package graphics Error: Division by 0."
+# when used with adjustbox
+
+lat_tab[8] <-  midrule # "\\hline\\\\[-1.8ex]"
+lat_tab[length(lat_tab) - 2] <- bottomrule # bottomrule
 
 latex_tab <- c(
   "\\begin{table}[!htbp]",  
-  lat_tab[3],
   "\\begin{adjustbox}{width=\\textwidth}",
+  lat_tab[3],
   "\\begin{threeparttable}",
   lat_tab[5:(length(lat_tab) - 1)],
   "\\begin{tablenotes}[flushleft]",
@@ -120,9 +131,9 @@ latex_tab <- c(
       "variable taking the value of one whenever a Big 4 auditing firm", 
       "(KPMG, PWC, EY or Deloitte) is involved in the audit."
     ),
-    min(smp_desc$year), max(smp_desc$year), 
-    format(length(unique(smp_desc$entity_map_fkey)), big.mark = ","),
-    length(unique(smp_desc$hq_iso2c))
+    min(afees_eu_clean$year), max(afees_eu_clean$year), 
+    format(length(unique(afees_eu_clean$entity_map_fkey)), big.mark = ","),
+    length(unique(afees_eu_clean$hq_iso2c))
   ),
   "\\end{tablenotes}",
   "\\end{threeparttable}",
@@ -132,6 +143,61 @@ latex_tab <- c(
 cat(paste(latex_tab, collapse = "\n"))  
 ```
 
+```{r DescByGroup, echo = FALSE, results = "asis"}
+smpd <- afees_eu_clean %>%
+  mutate(auditor = ifelse(
+    big4, 
+    sprintf("Big 4 (n = %s)", format(sum(afees_eu_clean$big4), big.mark = ",")),
+    sprintf("Non Big 4 (n = %s)", format(sum(!afees_eu_clean$big4), big.mark = ","))
+  )) %>%
+  select(
+    auditor, audit_fees, assets, revenues, market_cap, 
+    laudit_fees, lassets, lrevenues, lmarket_cap
+  ) %>%
+  as.data.frame()
+
+var_labels <- c(
+  "Auditor", "Audit fees",  
+  "Assets", "Revenues", "Market Capitalization", 
+  "Log(Audit fees)", "Log(Assets)", "Log(Revenues)", 
+  "Log(Market Capitalization)"
+)
+
+desc_rnames <- paste0("\\textit{", var_labels, "}")
+
+notes_tab <- sprintf(
+  paste(
+    "Notes: The data is obtained from Audit Analytics EU as provided",
+    "by WRDS. The sample covers the periods %d to %d and %s unique clients",
+    "form %d countries. Countries with less than 1,000 client-fiscal year", 
+    "observations are excluded. For audits involving multiple audit firms", 
+    "audit fees are aggregated at the client-fiscal year level so that",
+    "\\\\textit{Audit fees} represents the audit fees that the client incurred", 
+    "during a fiscal year. \\\\textit{Assets} and \\\\textit{Market",
+    "Capitalization} are client values and measured at the fiscal year end.", 
+    "\\\\textit{Revenues} reresents client net sales during the fiscal year.", 
+    "All values are measured in Mio. Euro. \\\\textit{Big 4} is a binary", 
+    "variable taking the value of one whenever a Big 4 auditing firm", 
+    "(KPMG, PWC, EY or Deloitte) is involved in the audit."
+  ),
+  min(afees_eu_clean$year), max(afees_eu_clean$year), 
+  format(length(unique(afees_eu_clean$entity_map_fkey)), big.mark = ","),
+  length(unique(afees_eu_clean$hq_iso2c))
+)
+
+names(smpd) <- var_labels
+datasummary(
+  All(smpd)~Auditor*(Mean + SD + Median), data = smpd,
+  title = "Descriptive Statistics by Auditor Type",
+  fmt = function(x) format(round(x, 3), big.mark = ","),
+  output = "latex",
+  dinm = FALSE
+) %>%
+  footnote(
+    general = notes_tab, footnote_as_chunk = TRUE, general_title = "",
+    threeparttable = TRUE, escape = F
+  ) 
+```
 
 
 ```{r YearBar, echo = FALSE, fig.align="center", fig.cap="\\label{fig::YearBar}Number of Clients by Year"}
@@ -278,8 +344,21 @@ ggplot(df, aes(x = assets, y = audit_fees, color = big4)) +
 
 ```
 
+```{r ContourPlot, echo = FALSE, fig.align="center", fig.cap="\\label{fig::ContourPlot}Audit Fees by Firm Size"}
 
-
+ggplot(df, aes(x = assets, y = audit_fees, color = big4)) +
+  geom_point(alpha = 0.01) + 
+  stat_density_2d(size = 0.4, bins = 10) +
+  labs(x = "Total Assets [Euro]", y = "Audit Fee [Euro]", color = "Auditor") +
+  scale_color_discrete(labels = c("Non Big 4", "Big 4")) +
+  scale_x_log10(labels = scales::label_comma()) +
+  scale_y_log10(labels = scales::label_comma()) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  theme_minimal() + theme(
+    text = element_text(family = "serif"),
+    legend.position = "bottom"
+  )
+```
 
 ``` {r CorrTable, results="asis"}
 var_labels <- c(
@@ -294,9 +373,9 @@ lat_tab <- unlist(strsplit(tab$kable_ret, "\n"))
 lat_tab[7:(6 + length(var_names))] <- str_replace(
   lat_tab[7:(6 + length(var_names))], fixed(var_names), var_labels
 )
-lat_tab[4] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+lat_tab[4] <- toprule
 lat_tab[6] <- "\\hline\\\\[-1.8ex]"
-lat_tab[(7 + length(var_names))] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
+lat_tab[(7 + length(var_names))] <- bottomrule
 lat_tab[(9 + length(var_names))] <- "\\begin{tablenotes}[flushleft]"
 lat_tab[(10 + length(var_names))] <- sprintf(
   paste(
@@ -347,8 +426,8 @@ for (i in seq(15, 24, by = 3)) {
 tab[32:33] <- str_replace_all(tab[32:33], fixed("entity\\_map\\_fkey"), "Client")
 tab[32:33] <- str_replace_all(tab[32:33], fixed("year"), "Year")
 tab <- tab[c(9, 10, 13:36, 38)]
-tab[1] <- "\\\\[-1.8ex]\\hline \\hline \\\\[-1.8ex]"
-tab[27] <- tab[1]
+tab[1] <- toprule
+tab[27] <- bottomrule
 
 
 latex_tab <- c(

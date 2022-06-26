@@ -171,7 +171,7 @@ prep_desc_table <- function(df, smp_name) {
       "Descriptive Statistics and Covariate Balance (%s)", smp_name
     ),
     fmt = function(x) format(round(x, 3), big.mark = ","),
-    output = "latex"
+    output = "latex", dinm = FALSE
   ) %>%
     footnote(
       general = notes_tab, footnote_as_chunk = TRUE, general_title = "",

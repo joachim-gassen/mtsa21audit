@@ -1,9 +1,12 @@
 # If you are new to Makefiles: https://makefiletutorial.com
 
-RAW_DATA := output/afees_eu.xlsx output/afees_eu.csv 
-DOCS := output/afees_eu_eda.pdf output/afees_eu_teffect.pdf
+RAW_DATA := output/afees_eu.xlsx output/afees_eu.csv \
+	
+BASEM_DATA := output/afees_de.xlsx
 
-TARGETS :=  $(RAW_DATA) $(DOCS)
+DOCS := output/afees_eu_eda.pdf output/afees_eu_teffect.pdf 
+
+TARGETS :=  $(RAW_DATA) $(BASEM_DATA) $(DOCS)
 
 EXTERNAL_DATA := data/external/fama_french_12_industries.csv \
 	data/external/fama_french_48_industries.csv
@@ -37,6 +40,11 @@ $(WRDS_DATA): code/R/pull_wrds_data.R code/R/read_config.R config.csv
 $(RAW_DATA): $(WRDS_DATA) code/R/prepare_data.R
 	$(RSCRIPT) code/R/prepare_data.R
 
+output/afees_de.xlsx: data/generated/afees_eu_clean.rds \
+		data/external/codebook_audit_fees_clean.csv \
+		code/R/create_data_file_afees_de.R
+	$(RSCRIPT) code/R/create_data_file_afees_de.R
+
 data/generated/afees_eu_clean.rds: $(EXTERNAL_DATA) \
 	data/generated/afees_eu.rds code/R/clean_data.R 
 	$(RSCRIPT) code/R/clean_data.R
@@ -52,3 +60,4 @@ output/afees_eu_teffect.pdf: doc/afees_eu_teffect.Rmd data/generated/afees_eu_cl
 	mv doc/afees_eu_teffect.pdf output
 	cp output/afees_eu_teffect.pdf afees_eu_teffect.pdf
 	rm -f doc/afees_eu_teffect.ttt doc/afees_eu_teffect.fff doc/afees_eu_teffect.log
+

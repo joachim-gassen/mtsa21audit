@@ -1,9 +1,17 @@
-## Code repository for the Master's Thesis Seminar in Accounting - Winter Term 2021/2022 
+## Code repository for example analyses on European audit fees
 
-This repository contains the code that I used to create the dataset that I provided to you on Moodle for your empirical assignments. It also contains information on the assignments itself and my solutions for both assignments. 
+This repository contains code that pulls European Audit Analytics data from WRDS and runs two example analyses:
+
+- [An explanatory analysis, describing the data set and assessing the Big 4 audit fee premium.](afees_eu_eda.pdf)
+
+- [A diff-in-diff analysis assessing the effect of the 2014 EU audit reforms on audit and non-audit fees.](afees_eu_teffect.pdf)
+
+I developed these analyses for teaching purposes and they are not meant to be complete. So I suggest you to take great care when interpreting them. I put them online so that others can learn, improve and build on them. 
+
+Below you will find the original assignments that I ran in class and some additional information on how to use the repository and to reproduce my analysis. Enjoy!
 
 
-### The empirical assignment - Part 1 (due: Dec 13, 6pm)
+### The empirical assignment - Part 1
 
 In our two-stage empirical project we will study audit fees of European firms. For that I provide you with a dataset based on data from Audit Analytics that I obtained using WRDS. The data is available both in Excel and CSV Format on Moodle. The code that I used to download the data is available in the `code` directory of this repository.
 
@@ -12,7 +20,7 @@ For the first step of the assignment (due Dec 13) I want you to provide descript
 I now pushed my solution to the first part of the assignment to the repo. The code `core/R/clean_data.R` prepares a clean data set based on the EU audit fee data and also shows you how to use [ExPanDaR](https://joachim-gassen.github.io/ExPanDaR) to explore this data set interactively. The actual exploratory data analysis is prepared by `doc/afees_eu_eda.Rmd`. The resulting PDF is [here](afees_eu_eda.pdf). See below on how to reproduce my analysis.
 
 
-### The empirical assignment - Part 2 (due: Jan 10, 6pm)
+### The empirical assignment - Part 2
 
 Building on the data of the last assignment, we will now assess the impact of regulatory reforms on the audit fee structure. You can choose between the implementation of two different European regulations.
 
